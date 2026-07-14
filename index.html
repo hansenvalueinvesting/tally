@@ -373,7 +373,7 @@ function entryRow(it){
     statLine=bits.join(' \u00B7 ')||'\u2014';
   }else{
     const sets=it.sets||[];
-    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`\u00D7<b>${escapeHtml(s.weight)}</b>`;return t;}).join('  ')||'\u2014';
+    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`\u00D7<b>${escapeHtml(s.weight)}</b>\u2009lb`;return t;}).join('  ')||'\u2014';
     statLine=`${sets.length} set${sets.length!==1?'s':''} \u00B7 ${parts}`;
   }
   el.innerHTML=`<div class="ebody">
@@ -434,7 +434,7 @@ function addBlock(cat){
       line.className='setline';
       line.innerHTML=`<span class="idx">${setRows.length+1}</span>
         <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${reps}">
-        <input type="number" inputmode="decimal" placeholder="wt (opt)" class="s-wt" value="${weight}">
+        <input type="number" inputmode="decimal" placeholder="lb (opt)" class="s-wt" value="${weight}">
         <button class="rm">\u00D7</button>`;
       line.querySelector('.rm').onclick=()=>{
         line.remove();
