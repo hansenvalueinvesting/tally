@@ -102,6 +102,11 @@
   .d-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
     padding:16px 16px 15px;margin-bottom:14px}
   .d-card .d-title{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-bottom:16px}
+  .cardio-stats{display:flex;gap:30px}
+  .cstat .n{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
+  .cstat.hero .n{color:var(--accent)}
+  .cstat .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:8px}
+  .cardio-sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:15px}
   .bars{display:flex;align-items:flex-end;gap:7px}
   .bars .col{flex:1;display:flex;flex-direction:column;align-items:center}
   .bars .bar{width:100%;background:var(--line-strong);border-radius:4px 4px 0 0;min-height:4px}
@@ -248,6 +253,12 @@
   .instr .plat .pi{color:var(--accent)}
   .instr ol{margin:0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.75}
   .instr ol b{color:var(--ink);font-weight:600}
+  .eff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .eff-field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.6px;
+    color:var(--faint);margin-bottom:5px;padding-left:2px}
+  .eff-field input{width:100%;background:var(--panel);border:1px solid var(--line-strong);
+    color:var(--ink);padding:13px 14px;border-radius:10px;font-size:15px}
+  .eff-field input:focus{outline:none;border-color:var(--accent)}
 
   input[type=file]{display:none}
 </style>
@@ -338,6 +349,15 @@
     </div>
 
     <div class="set-sec">
+      <div class="set-sec-title">cardio effort</div>
+      <div class="eff-grid">
+        <div class="eff-field"><label>points / km</label><input id="effDist" type="number" inputmode="decimal" step="0.5" min="0"></div>
+        <div class="eff-field"><label>points / minute</label><input id="effTime" type="number" inputmode="decimal" step="0.5" min="0"></div>
+      </div>
+      <p class="set-note">a cardio entry scores distance × (points/km) and time × (points/min). log both and its effort is the average of the two. tune these so a typical run and ride feel right — it feeds the cardio effort on your dashboard.</p>
+    </div>
+
+    <div class="set-sec">
       <div class="set-sec-title">about</div>
       <p class="set-note">tally — a quiet training log. no accounts, no cloud, no upsells. just you and the work.</p>
     </div>
@@ -406,6 +426,54 @@ function dayEntries(date){return entries.filter(e=>e.date===date);}
 function sessionDates(){return [...new Set(entries.map(e=>e.date))].sort().reverse();}
 function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));}
 function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
+
+/* ---------- cardio effort ---------- */
+const EFFORT_DEFAULTS={dist:6,time:1};   // points per km, points per minute
+let EFFORT={dist:EFFORT_DEFAULTS.dist,time:EFFORT_DEFAULTS.time};
+function loadEffort(){
+  try{
+    const d=parseFloat(localStorage.getItem('tally.effort.dist'));
+    const t=parseFloat(localStorage.getItem('tally.effort.time'));
+    if(!isNaN(d)&&d>=0)EFFORT.dist=d;
+    if(!isNaN(t)&&t>=0)EFFORT.time=t;
+  }catch(e){}
+}
+function saveEffort(){try{localStorage.setItem('tally.effort.dist',EFFORT.dist);localStorage.setItem('tally.effort.time',EFFORT.time);}catch(e){}}
+/* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
+function parseDistanceKm(str){
+  if(!str)return null;
+  const m=String(str).match(/(\d+(?:\.\d+)?)\s*(mi|mile|miles|km|k|m)?/i);
+  if(!m)return null;
+  const val=parseFloat(m[1]);if(isNaN(val))return null;
+  const u=(m[2]||'').toLowerCase();
+  if(u==='mi'||u==='mile'||u==='miles')return val*1.60934;
+  return val;   // km / k / bare number
+}
+/* read a time like "28 min", "1:05:00", "45", "1 h" -> minutes (or null) */
+function parseMinutes(str){
+  if(!str)return null;
+  const s=String(str).trim();
+  if(/^\d+:\d{1,2}(:\d{1,2})?$/.test(s)){
+    const p=s.split(':').map(Number);
+    return p.length===3 ? p[0]*60+p[1]+p[2]/60 : p[0]+p[1]/60;   // h:mm:ss or mm:ss
+  }
+  const m=s.match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|min|mins|minute|minutes|m|s|sec|secs)?/i);
+  if(!m)return null;
+  const val=parseFloat(m[1]);if(isNaN(val))return null;
+  const u=(m[2]||'').toLowerCase();
+  if(u==='h'||u==='hr'||u==='hrs'||u==='hour'||u==='hours')return val*60;
+  if(u==='s'||u==='sec'||u==='secs')return val/60;
+  return val;   // minutes
+}
+/* effort = distance*dist + time*time; averaged when both are present */
+function cardioEffort(it){
+  const km=parseDistanceKm(it.distance), min=parseMinutes(it.time);
+  const eD=km!=null?km*EFFORT.dist:null, eT=min!=null?min*EFFORT.time:null;
+  if(eD!=null&&eT!=null)return (eD+eT)/2;
+  if(eD!=null)return eD;
+  if(eT!=null)return eT;
+  return 0;
+}
 
 /* ---------- view routing ---------- */
 const views = {
@@ -494,6 +562,23 @@ function renderDashboard(){
       <span class="cnum">${n}</span>
     </div>`).join('');
 
+  // cardio effort
+  const cardio=inRange.filter(e=>e.cat==='cardio');
+  let cardioEff=0,cardioKm=0,cardioMin=0;
+  cardio.forEach(e=>{cardioEff+=cardioEffort(e);const k=parseDistanceKm(e.distance);if(k)cardioKm+=k;const mn=parseMinutes(e.time);if(mn)cardioMin+=mn;});
+  const subBits=[];
+  if(cardioKm)subBits.push((Math.round(cardioKm*10)/10)+' km');
+  if(cardioMin)subBits.push(Math.round(cardioMin)+' min');
+  const cardioCard = cardio.length ? `
+    <div class="d-card">
+      <div class="d-title">cardio</div>
+      <div class="cardio-stats">
+        <div class="cstat hero"><div class="n">${fmtVol(cardioEff)}</div><div class="l">effort</div></div>
+        <div class="cstat"><div class="n">${cardio.length}</div><div class="l">sessions</div></div>
+      </div>
+      ${subBits.length?`<div class="cardio-sub">${subBits.join(' · ')} logged</div>`:''}
+    </div>` : '';
+
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
   host.innerHTML=seg+`
     <div class="kpi-grid">
@@ -502,6 +587,7 @@ function renderDashboard(){
       <div class="kpi"><div class="n">${fmtVol(avgVol)}<span class="u"> lb</span></div><div class="l">avg / session</div></div>
       <div class="kpi"><div class="n">${totalSets}</div><div class="l">sets</div></div>
     </div>
+    ${cardioCard}
     <div class="d-card">
       <div class="d-title">volume · recent sessions</div>
       <div class="bars">${bars}</div>
@@ -587,6 +673,8 @@ function entryRow(it){
     const bits=[];
     if(it.distance)bits.push(`<b>${escapeHtml(it.distance)}</b>`);
     if(it.time)bits.push(`<b>${escapeHtml(it.time)}</b>`);
+    const eff=cardioEffort(it);
+    if(eff>0)bits.push(`effort <b>${fmtVol(eff)}</b>`);
     statLine=bits.join(' · ')||'—';
   }else{
     const sets=it.sets||[];
@@ -772,6 +860,12 @@ installBtn.onclick=async()=>{
 };
 window.addEventListener('appinstalled',()=>{deferredPrompt=null;installBtn.hidden=true;});
 
+/* ---------- cardio effort settings ---------- */
+const effDist=document.getElementById('effDist'), effTime=document.getElementById('effTime');
+function syncEffortInputs(){effDist.value=EFFORT.dist;effTime.value=EFFORT.time;}
+effDist.oninput=()=>{const v=parseFloat(effDist.value);if(!isNaN(v)&&v>=0){EFFORT.dist=v;saveEffort();renderDashboard();}};
+effTime.oninput=()=>{const v=parseFloat(effTime.value);if(!isNaN(v)&&v>=0){EFFORT.time=v;saveEffort();renderDashboard();}};
+
 /* ---------- utils ---------- */
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtDate(d){
@@ -781,6 +875,8 @@ function fmtDate(d){
 
 /* ---------- boot ---------- */
 (async function(){
+  loadEffort();
+  syncEffortInputs();
   await openDB();
   entries=await allEntries();
   switchTab('home');
