@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tally">
+<meta name="apple-mobile-web-app-title" content="tally">
 <meta name="theme-color" content="#0a0a0a">
-<title>Tally — training log</title>
+<title>tally — training log</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -50,10 +50,11 @@
     font-family:var(--ui);
     -webkit-font-smoothing:antialiased;
     max-width:640px;margin:0 auto;min-height:100vh;
+    text-transform:lowercase;
   }
   h1,h2,h3{margin:0;font-weight:600}
-  button{font-family:var(--ui);cursor:pointer;border:none;background:none;color:inherit}
-  input,select{font-family:var(--mono)}
+  button{font-family:var(--ui);cursor:pointer;border:none;background:none;color:inherit;text-transform:inherit}
+  input,select{font-family:var(--mono);text-transform:lowercase}
 
   .view{display:none}
   .view.active{display:block}
@@ -66,7 +67,7 @@
   .brand{display:flex;align-items:center;gap:11px}
   .brand h1{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-1px;font-optical-sizing:auto}
   .brand .dot{color:var(--accent)}
-  .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+  .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:lowercase}
   .brand .spacer{flex:1}
   .tool{background:transparent;border:1px solid var(--line-strong);color:var(--dim);
     font-family:var(--mono);font-size:11px;letter-spacing:.4px;padding:8px 11px;border-radius:8px}
@@ -87,7 +88,7 @@
   .card .cdot{width:6px;height:6px;border-radius:50%}
   .card .cvol{font-family:var(--mono);text-align:right;flex-shrink:0}
   .card .cvol .n{font-size:17px;font-weight:700;color:var(--accent);line-height:1}
-  .card .cvol .l{font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .card .cvol .l{font-size:8.5px;text-transform:lowercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
   .card .cvol .empty-tag{font-size:10px;color:var(--faint);letter-spacing:.5px}
   .home-empty{text-align:center;color:var(--faint);font-family:var(--mono);font-size:13px;
     padding:64px 24px;line-height:1.8}
@@ -138,14 +139,14 @@
   .entry .stat b{color:var(--ink);font-weight:600}
   .entry .del{color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
   .entry .del:active{color:var(--rose)}
-  .subtype{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.8px;
+  .subtype{font-family:var(--mono);font-size:9.5px;text-transform:lowercase;letter-spacing:.8px;
     color:var(--dim);border:1px solid var(--line-strong);padding:1px 6px;border-radius:5px;
     display:inline-block;margin-bottom:5px}
 
   .add{border:1px dashed var(--line-strong);border-radius:10px;padding:12px;margin-top:2px}
   .field{margin-bottom:9px}
   .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.6px;
-    text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+    text-transform:lowercase;color:var(--faint);margin-bottom:4px}
   .field input,.field select{width:100%;background:var(--bg);border:1px solid var(--line-strong);
     color:var(--ink);padding:10px 11px;border-radius:8px;font-size:14px}
   .field input::placeholder{color:var(--faint)}
@@ -180,7 +181,7 @@
   .summary .stat-blk{display:flex;flex-direction:column}
   .summary .stat-blk .n{font-size:19px;font-weight:700;color:var(--ink);line-height:1}
   .summary .stat-blk:first-child .n{color:var(--accent)}
-  .summary .stat-blk .l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .summary .stat-blk .l{font-size:9px;text-transform:lowercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
   .summary .done{background:var(--ink);border:1px solid var(--ink);color:var(--bg);
     padding:11px 20px;border-radius:9px;font-weight:600;font-size:13px}
   .summary .done:active{opacity:.85}
@@ -236,7 +237,7 @@ const CATS = [
   { id:'core', name:'Core', color:'#f0894a', kind:'lift',
     sub:['Abs','Lower back'], hint:'e.g. Hanging knee raise' },
   { id:'upper', name:'Upper Body', color:'#b18cff', kind:'lift',
-    sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull'], hint:'e.g. Bench press' },
+    sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull','Shoulders'], hint:'e.g. Bench press' },
   { id:'lower', name:'Lower Body', color:'#34d3a6', kind:'lift',
     sub:['Squat','Hinge','Other'], hint:'e.g. Back squat' },
 ];
@@ -541,13 +542,7 @@ importFile.onchange=()=>{
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtDate(d){
   const dt=new Date(d+'T00:00:00');
-  const t=todayStr();
-  if(d===t)return 'Today';
-  const y=new Date();y.setDate(y.getDate()-1);
-  const yStr=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
-  if(d===yStr)return 'Yesterday';
-  return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
-    (dt.getFullYear()!==new Date().getFullYear()?' '+dt.getFullYear():'');
+  return dt.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 }
 
 /* ---------- boot ---------- */
