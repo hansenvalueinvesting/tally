@@ -237,7 +237,7 @@ const CATS = [
   { id:'core', name:'Core', color:'#f0894a', kind:'lift',
     sub:['Abs','Lower back'], hint:'e.g. Hanging knee raise' },
   { id:'upper', name:'Upper Body', color:'#b18cff', kind:'lift',
-    sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull'], hint:'e.g. Bench press' },
+    sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull','Shoulders'], hint:'e.g. Bench press' },
   { id:'lower', name:'Lower Body', color:'#34d3a6', kind:'lift',
     sub:['Squat','Hinge','Other'], hint:'e.g. Back squat' },
 ];
@@ -542,13 +542,7 @@ importFile.onchange=()=>{
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtDate(d){
   const dt=new Date(d+'T00:00:00');
-  const t=todayStr();
-  if(d===t)return 'Today';
-  const y=new Date();y.setDate(y.getDate()-1);
-  const yStr=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
-  if(d===yStr)return 'Yesterday';
-  return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
-    (dt.getFullYear()!==new Date().getFullYear()?' '+dt.getFullYear():'');
+  return dt.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 }
 
 /* ---------- boot ---------- */
