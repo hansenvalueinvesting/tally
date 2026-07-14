@@ -253,12 +253,6 @@
   .instr .plat .pi{color:var(--accent)}
   .instr ol{margin:0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.75}
   .instr ol b{color:var(--ink);font-weight:600}
-  .eff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .eff-field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.6px;
-    color:var(--faint);margin-bottom:5px;padding-left:2px}
-  .eff-field input{width:100%;background:var(--panel);border:1px solid var(--line-strong);
-    color:var(--ink);padding:13px 14px;border-radius:10px;font-size:15px}
-  .eff-field input:focus{outline:none;border-color:var(--accent)}
 
   input[type=file]{display:none}
 </style>
@@ -349,15 +343,6 @@
     </div>
 
     <div class="set-sec">
-      <div class="set-sec-title">cardio effort</div>
-      <div class="eff-grid">
-        <div class="eff-field"><label>points / km</label><input id="effDist" type="number" inputmode="decimal" step="0.5" min="0"></div>
-        <div class="eff-field"><label>points / minute</label><input id="effTime" type="number" inputmode="decimal" step="0.5" min="0"></div>
-      </div>
-      <p class="set-note">a cardio entry scores distance × (points/km) and time × (points/min). log both and its effort is the average of the two. tune these so a typical run and ride feel right — it feeds the cardio effort on your dashboard.</p>
-    </div>
-
-    <div class="set-sec">
       <div class="set-sec-title">about</div>
       <p class="set-note">tally — a quiet training log. no accounts, no cloud, no upsells. just you and the work.</p>
     </div>
@@ -428,17 +413,11 @@ function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
 function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
 
 /* ---------- cardio effort ---------- */
-const EFFORT_DEFAULTS={dist:6,time:1};   // points per km, points per minute
-let EFFORT={dist:EFFORT_DEFAULTS.dist,time:EFFORT_DEFAULTS.time};
-function loadEffort(){
-  try{
-    const d=parseFloat(localStorage.getItem('tally.effort.dist'));
-    const t=parseFloat(localStorage.getItem('tally.effort.time'));
-    if(!isNaN(d)&&d>=0)EFFORT.dist=d;
-    if(!isNaN(t)&&t>=0)EFFORT.time=t;
-  }catch(e){}
-}
-function saveEffort(){try{localStorage.setItem('tally.effort.dist',EFFORT.dist);localStorage.setItem('tally.effort.time',EFFORT.time);}catch(e){}}
+/* Baked-in weights. time = 1 point/min (an honest cross-activity effort unit),
+   distance = 6 points/km (anchored to a moderate ~6 min/km run so distance and
+   time weigh about equally for a typical run; longer rides still add distance
+   credit, tempered by averaging the two when both are logged). */
+const EFFORT={dist:6,time:1};
 /* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
 function parseDistanceKm(str){
   if(!str)return null;
@@ -860,12 +839,6 @@ installBtn.onclick=async()=>{
 };
 window.addEventListener('appinstalled',()=>{deferredPrompt=null;installBtn.hidden=true;});
 
-/* ---------- cardio effort settings ---------- */
-const effDist=document.getElementById('effDist'), effTime=document.getElementById('effTime');
-function syncEffortInputs(){effDist.value=EFFORT.dist;effTime.value=EFFORT.time;}
-effDist.oninput=()=>{const v=parseFloat(effDist.value);if(!isNaN(v)&&v>=0){EFFORT.dist=v;saveEffort();renderDashboard();}};
-effTime.oninput=()=>{const v=parseFloat(effTime.value);if(!isNaN(v)&&v>=0){EFFORT.time=v;saveEffort();renderDashboard();}};
-
 /* ---------- utils ---------- */
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtDate(d){
@@ -875,8 +848,6 @@ function fmtDate(d){
 
 /* ---------- boot ---------- */
 (async function(){
-  loadEffort();
-  syncEffortInputs();
   await openDB();
   entries=await allEntries();
   switchTab('home');
