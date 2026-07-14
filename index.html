@@ -4,36 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#FAFAF8">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
 <title>Tally — training log</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* paper + ink */
-    --bg:#fafaf8;
-    --panel:#ffffff;
-    --panel-2:#f4f3ef;
-    --line:#e5e3db;
-    --line-strong:#d8d6cc;
-    --ink:#16150f;
-    --dim:#6b6a60;
-    --faint:#9a988c;
-    /* single accent */
-    --accent:#2b4cf0;
-    --accent-press:#1f3ac2;
-    --accent-wash:#eef1fe;
-    /* category hues (muted, share the minimal register) */
-    --c-cardio:#2b4cf0;
-    --c-core:#c2410c;
-    --c-upper:#7c3aed;
-    --c-lower:#0f766e;
-    --rose:#c02626;
+    color-scheme:dark;
+    /* black + light — Dropset-style monochrome dark */
+    --bg:#0a0a0a;
+    --panel:#151515;
+    --panel-2:#1d1d1d;
+    --line:#2a2a2a;
+    --line-strong:#3a3a38;
+    --ink:#f4f3ee;
+    --dim:#a3a29b;
+    --faint:#6a6a63;
+    /* single accent — acid lime */
+    --accent:#ccff33;
+    --accent-press:#b6e622;
+    --accent-wash:rgba(204,255,51,.10);
+    --on-accent:#0a0a0a;
+    /* category hues (muted, tuned for the dark register) */
+    --c-cardio:#6ea8fe;
+    --c-core:#f0894a;
+    --c-upper:#b18cff;
+    --c-lower:#34d3a6;
+    --rose:#ff5a5a;
     --radius:12px;
     --mono:'JetBrains Mono',monospace;
-    --disp:'Fraunces',Georgia,serif;
+    --disp:'Space Grotesk',system-ui,sans-serif;
     --ui:'Inter',system-ui,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -54,10 +56,10 @@
   /* ===== shared header ===== */
   header{
     padding:calc(env(safe-area-inset-top) + 24px) 20px 16px;position:sticky;top:0;z-index:20;
-    background:linear-gradient(180deg,var(--bg) 78%,rgba(250,250,248,0));
+    background:linear-gradient(180deg,var(--bg) 78%,rgba(10,10,10,0));
   }
   .brand{display:flex;align-items:center;gap:11px}
-  .brand h1{font-family:var(--disp);font-size:30px;font-weight:600;letter-spacing:-.5px;font-optical-sizing:auto}
+  .brand h1{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-1px;font-optical-sizing:auto}
   .brand .dot{color:var(--accent)}
   .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
   .brand .spacer{flex:1}
@@ -90,9 +92,9 @@
   .fab{
     position:fixed;left:50%;transform:translateX(-50%);
     bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:40;
-    background:var(--accent);color:#fff;font-weight:600;font-size:15px;letter-spacing:.1px;
+    background:var(--accent);color:var(--on-accent);font-weight:700;font-size:15px;letter-spacing:.1px;
     padding:15px 28px;border-radius:100px;display:flex;align-items:center;gap:9px;
-    box-shadow:0 6px 20px rgba(43,76,240,.32),0 1px 3px rgba(0,0,0,.1);
+    box-shadow:0 6px 24px rgba(204,255,51,.28),0 2px 8px rgba(0,0,0,.5);
   }
   .fab:active{transform:translateX(-50%) scale(.97);background:var(--accent-press)}
   .fab .plus{font-size:19px;line-height:1;font-weight:400}
@@ -152,7 +154,7 @@
   .addset{font-family:var(--mono);font-size:11px;color:var(--accent);padding:6px 0;letter-spacing:.3px}
   .addset:active{color:var(--accent-press)}
   .add-actions{display:flex;gap:8px;margin-top:8px}
-  .btn-save{flex:1;background:var(--accent);color:#fff;font-weight:600;font-size:13px;
+  .btn-save{flex:1;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;
     padding:11px;border-radius:8px;letter-spacing:.2px}
   .btn-save:active{background:var(--accent-press)}
   .btn-cancel{background:transparent;color:var(--dim);font-size:13px;padding:11px 16px;
@@ -164,7 +166,7 @@
   /* session summary footer */
   .summary{
     position:fixed;left:0;right:0;bottom:0;z-index:30;
-    background:linear-gradient(0deg,var(--bg) 66%,rgba(250,250,248,.85));
+    background:linear-gradient(0deg,var(--bg) 66%,rgba(10,10,10,.85));
     padding:13px 20px calc(13px + env(safe-area-inset-bottom));
     max-width:640px;margin:0 auto;border-top:1px solid var(--line);
     display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -225,12 +227,12 @@
 <script>
 /* ---------- category schema ---------- */
 const CATS = [
-  { id:'cardio', name:'Cardio', color:'#2b4cf0', kind:'cardio', hint:'e.g. Run, Bike, Row' },
-  { id:'core', name:'Core', color:'#c2410c', kind:'lift',
+  { id:'cardio', name:'Cardio', color:'#6ea8fe', kind:'cardio', hint:'e.g. Run, Bike, Row' },
+  { id:'core', name:'Core', color:'#f0894a', kind:'lift',
     sub:['Abs','Lower back'], hint:'e.g. Hanging knee raise' },
-  { id:'upper', name:'Upper Body', color:'#7c3aed', kind:'lift',
+  { id:'upper', name:'Upper Body', color:'#b18cff', kind:'lift',
     sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull'], hint:'e.g. Bench press' },
-  { id:'lower', name:'Lower Body', color:'#0f766e', kind:'lift',
+  { id:'lower', name:'Lower Body', color:'#34d3a6', kind:'lift',
     sub:['Squat','Hinge','Other'], hint:'e.g. Back squat' },
 ];
 const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
