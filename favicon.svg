@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Tally">
+  <rect width="512" height="512" rx="116" fill="#0a0a0a"/>
+  <g fill="none" stroke="#f4f3ee" stroke-width="46" stroke-linecap="round">
+    <path d="M150 150 V362"/>
+    <path d="M221 150 V362"/>
+    <path d="M292 150 V362"/>
+    <path d="M363 150 V362"/>
+  </g>
+  <path d="M120 384 L392 128" fill="none" stroke="#ccff33" stroke-width="46" stroke-linecap="round"/>
+</svg>
