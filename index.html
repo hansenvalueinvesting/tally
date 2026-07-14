@@ -87,6 +87,12 @@
 
   /* ===== HOME / dashboard ===== */
   #dash{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
+  .seg{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:4px;margin-bottom:14px}
+  .seg button{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.4px;
+    color:var(--dim);padding:9px 0;border-radius:7px;transition:background .12s,color .12s}
+  .seg button.on{background:var(--accent);color:var(--on-accent);font-weight:700}
+  .seg button:not(.on):active{background:var(--panel-2)}
   .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   .kpi{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:15px 16px}
   .kpi .n{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;color:var(--ink)}
@@ -436,19 +442,36 @@ function openSession(date){
 }
 
 /* ---------- DASHBOARD rendering ---------- */
+let dashRange='all';   // 'all' | '30' | '7'
+function rangeCut(range){
+  if(range==='all')return null;
+  const days=range==='7'?6:29;
+  const c=new Date();c.setDate(c.getDate()-days);
+  return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
+}
 function renderDashboard(){
   const host=document.getElementById('dash');
-  if(entries.length===0){
-    host.innerHTML=`<div class="home-empty">no data yet.<br><b>log a session to see your stats.</b></div>`;
-    return;
+  const seg=`<div class="seg">
+      <button data-r="all" class="${dashRange==='all'?'on':''}">all time</button>
+      <button data-r="30" class="${dashRange==='30'?'on':''}">30 days</button>
+      <button data-r="7" class="${dashRange==='7'?'on':''}">7 days</button>
+    </div>`;
+  const bindSeg=()=>host.querySelectorAll('.seg button').forEach(b=>{b.onclick=()=>{dashRange=b.dataset.r;renderDashboard();};});
+
+  const cut=rangeCut(dashRange);
+  const inRange = cut ? entries.filter(e=>e.date>=cut) : entries;
+
+  if(inRange.length===0){
+    const msg = dashRange==='all' ? 'no data yet.' : 'nothing logged in this range.';
+    const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
+    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`;
+    bindSeg();return;
   }
-  const dates=sessionDates();
+
+  const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
   const totalSessions=dates.length;
-  let totalVol=0;
-  entries.forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
-  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-6);
-  const cut=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
-  const weekSessions=dates.filter(d=>d>=cut).length;
+  let totalVol=0,totalSets=0;
+  inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{totalSets++;const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
   const avgVol=totalSessions?totalVol/totalSessions:0;
 
   const recent=dates.slice(0,8).reverse();
@@ -461,7 +484,7 @@ function renderDashboard(){
     return `<div class="col${i===vols.length-1?' last':''}"><div class="bar" style="height:${h}px"></div><div class="bcap">${cap}</div></div>`;
   }).join('');
 
-  const catCounts=CATS.map(c=>({c,n:entries.filter(e=>e.cat===c.id).length}));
+  const catCounts=CATS.map(c=>({c,n:inRange.filter(e=>e.cat===c.id).length}));
   const maxC=Math.max(1,...catCounts.map(x=>x.n));
   const catRows=catCounts.map(({c,n})=>`
     <div class="catrow">
@@ -471,12 +494,13 @@ function renderDashboard(){
       <span class="cnum">${n}</span>
     </div>`).join('');
 
-  host.innerHTML=`
+  const volLabel = dashRange==='all' ? 'total volume' : 'volume';
+  host.innerHTML=seg+`
     <div class="kpi-grid">
-      <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">total volume</div></div>
+      <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
-      <div class="kpi"><div class="n">${weekSessions}</div><div class="l">this week</div></div>
       <div class="kpi"><div class="n">${fmtVol(avgVol)}<span class="u"> lb</span></div><div class="l">avg / session</div></div>
+      <div class="kpi"><div class="n">${totalSets}</div><div class="l">sets</div></div>
     </div>
     <div class="d-card">
       <div class="d-title">volume · recent sessions</div>
@@ -486,6 +510,7 @@ function renderDashboard(){
       <div class="d-title">exercises by category</div>
       ${catRows}
     </div>`;
+  bindSeg();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
