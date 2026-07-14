@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FAFAF8">
+<title>Tally — training log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* paper + ink */
+    --bg:#fafaf8;
+    --panel:#ffffff;
+    --panel-2:#f4f3ef;
+    --line:#e5e3db;
+    --line-strong:#d8d6cc;
+    --ink:#16150f;
+    --dim:#6b6a60;
+    --faint:#9a988c;
+    /* single accent */
+    --accent:#2b4cf0;
+    --accent-press:#1f3ac2;
+    --accent-wash:#eef1fe;
+    /* category hues (muted, share the minimal register) */
+    --c-cardio:#2b4cf0;
+    --c-core:#c2410c;
+    --c-upper:#7c3aed;
+    --c-lower:#0f766e;
+    --rose:#c02626;
+    --radius:12px;
+    --mono:'JetBrains Mono',monospace;
+    --disp:'Fraunces',Georgia,serif;
+    --ui:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:var(--ui);
+    -webkit-font-smoothing:antialiased;
+    max-width:640px;margin:0 auto;min-height:100vh;
+  }
+  h1,h2,h3{margin:0;font-weight:600}
+  button{font-family:var(--ui);cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:var(--mono)}
+
+  .view{display:none}
+  .view.active{display:block}
+
+  /* ===== shared header ===== */
+  header{
+    padding:calc(env(safe-area-inset-top) + 24px) 20px 16px;position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--bg) 78%,rgba(250,250,248,0));
+  }
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand h1{font-family:var(--disp);font-size:30px;font-weight:600;letter-spacing:-.5px;font-optical-sizing:auto}
+  .brand .dot{color:var(--accent)}
+  .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+  .brand .spacer{flex:1}
+  .tool{background:transparent;border:1px solid var(--line-strong);color:var(--dim);
+    font-family:var(--mono);font-size:11px;letter-spacing:.4px;padding:8px 11px;border-radius:8px}
+  .tool:active{background:var(--panel-2);color:var(--ink)}
+
+  /* ===== HOME: session cards ===== */
+  #homeList{padding:8px 16px calc(env(safe-area-inset-bottom) + 116px)}
+  .card{
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+    padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;
+    width:100%;text-align:left;transition:border-color .15s;
+  }
+  .card:active{border-color:var(--line-strong);background:var(--panel-2)}
+  .card .cbody{flex:1;min-width:0}
+  .card .cdate{font-family:var(--disp);font-size:18px;font-weight:600;letter-spacing:-.2px}
+  .card .cmeta{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:4px}
+  .card .cdots{display:flex;gap:6px;margin-top:10px;align-items:center}
+  .card .cdot{width:6px;height:6px;border-radius:50%}
+  .card .cvol{font-family:var(--mono);text-align:right;flex-shrink:0}
+  .card .cvol .n{font-size:17px;font-weight:700;color:var(--accent);line-height:1}
+  .card .cvol .l{font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .card .cvol .empty-tag{font-size:10px;color:var(--faint);letter-spacing:.5px}
+  .home-empty{text-align:center;color:var(--faint);font-family:var(--mono);font-size:13px;
+    padding:64px 24px;line-height:1.8}
+  .home-empty b{color:var(--dim);font-weight:500}
+
+  /* FAB — pill, accent, the one bold element */
+  .fab{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:40;
+    background:var(--accent);color:#fff;font-weight:600;font-size:15px;letter-spacing:.1px;
+    padding:15px 28px;border-radius:100px;display:flex;align-items:center;gap:9px;
+    box-shadow:0 6px 20px rgba(43,76,240,.32),0 1px 3px rgba(0,0,0,.1);
+  }
+  .fab:active{transform:translateX(-50%) scale(.97);background:var(--accent-press)}
+  .fab .plus{font-size:19px;line-height:1;font-weight:400}
+
+  /* ===== SESSION view ===== */
+  .s-head{display:flex;align-items:center;gap:13px}
+  .back{background:var(--panel);border:1px solid var(--line-strong);color:var(--dim);
+    width:38px;height:38px;border-radius:10px;font-size:20px;display:flex;
+    align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+  .back:active{background:var(--panel-2);color:var(--ink)}
+  .s-title{flex:1;min-width:0}
+  .s-title .st-date{font-family:var(--disp);font-size:21px;font-weight:600;letter-spacing:-.3px}
+  .s-title .st-edit{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:1px;cursor:pointer}
+  .s-datepick{background:var(--panel);border:1px solid var(--line-strong);color:var(--ink);
+    padding:8px 10px;border-radius:9px;font-size:12px;display:none}
+  .s-datepick.show{display:block}
+
+  #groups{padding:16px 0 calc(env(safe-area-inset-bottom) + 96px)}
+
+  .group{margin:0 16px;border-bottom:1px solid var(--line)}
+  .group:first-child{border-top:1px solid var(--line)}
+  .g-head{display:flex;align-items:center;gap:11px;padding:16px 2px;width:100%;text-align:left}
+  .g-tag{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .g-title{font-size:15px;font-weight:600;flex:1;letter-spacing:-.1px}
+  .g-count{font-family:var(--mono);font-size:11px;color:var(--faint);min-width:16px;text-align:right}
+  .g-chev{color:var(--faint);font-size:11px;transition:transform .18s;font-family:var(--mono);margin-left:2px}
+  .group.open .g-chev{transform:rotate(90deg)}
+  .g-body{display:none;padding:0 0 14px}
+  .group.open .g-body{display:block}
+
+  .entry{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+  .entry .ebody{flex:1;min-width:0}
+  .entry .name{font-size:14px;font-weight:600;word-break:break-word}
+  .entry .stat{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:3px}
+  .entry .stat b{color:var(--ink);font-weight:600}
+  .entry .del{color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
+  .entry .del:active{color:var(--rose)}
+  .subtype{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--dim);border:1px solid var(--line-strong);padding:1px 6px;border-radius:5px;
+    display:inline-block;margin-bottom:5px}
+
+  .add{border:1px dashed var(--line-strong);border-radius:10px;padding:12px;margin-top:2px}
+  .field{margin-bottom:9px}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.6px;
+    text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+  .field input,.field select{width:100%;background:var(--bg);border:1px solid var(--line-strong);
+    color:var(--ink);padding:10px 11px;border-radius:8px;font-size:14px}
+  .field input::placeholder{color:var(--faint)}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .setline{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .setline .idx{font-family:var(--mono);font-size:11px;color:var(--faint);width:22px;flex-shrink:0}
+  .setline input{flex:1}
+  .setline .rm{color:var(--faint);font-size:16px;padding:4px 6px}
+  .setline .rm:active{color:var(--rose)}
+  .addset{font-family:var(--mono);font-size:11px;color:var(--accent);padding:6px 0;letter-spacing:.3px}
+  .addset:active{color:var(--accent-press)}
+  .add-actions{display:flex;gap:8px;margin-top:8px}
+  .btn-save{flex:1;background:var(--accent);color:#fff;font-weight:600;font-size:13px;
+    padding:11px;border-radius:8px;letter-spacing:.2px}
+  .btn-save:active{background:var(--accent-press)}
+  .btn-cancel{background:transparent;color:var(--dim);font-size:13px;padding:11px 16px;
+    border-radius:8px;font-family:var(--mono);border:1px solid var(--line-strong)}
+  .add-trigger{width:100%;background:transparent;border:1px solid var(--line-strong);color:var(--dim);
+    padding:11px;border-radius:9px;font-size:13px;font-family:var(--mono);letter-spacing:.2px;margin-top:2px}
+  .add-trigger:active{background:var(--panel-2);color:var(--accent)}
+
+  /* session summary footer */
+  .summary{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:linear-gradient(0deg,var(--bg) 66%,rgba(250,250,248,.85));
+    padding:13px 20px calc(13px + env(safe-area-inset-bottom));
+    max-width:640px;margin:0 auto;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+  }
+  .summary .stats{display:flex;gap:22px;font-family:var(--mono)}
+  .summary .stat-blk{display:flex;flex-direction:column}
+  .summary .stat-blk .n{font-size:19px;font-weight:700;color:var(--ink);line-height:1}
+  .summary .stat-blk:first-child .n{color:var(--accent)}
+  .summary .stat-blk .l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .summary .done{background:var(--ink);border:1px solid var(--ink);color:var(--bg);
+    padding:11px 20px;border-radius:9px;font-weight:600;font-size:13px}
+  .summary .done:active{opacity:.85}
+
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME VIEW ============ -->
+<section class="view active" id="homeView">
+  <header>
+    <div class="brand">
+      <h1>Tally<span class="dot">.</span></h1>
+      <small>training log</small>
+      <span class="spacer"></span>
+      <button class="tool" id="exportBtn">export</button>
+      <button class="tool" id="importBtn">import</button>
+    </div>
+  </header>
+  <div id="homeList"></div>
+  <button class="fab" id="fab"><span class="plus">+</span> Start session</button>
+  <input type="file" id="importFile" accept="application/json,.json">
+</section>
+
+<!-- ============ SESSION VIEW ============ -->
+<section class="view" id="sessionView">
+  <header>
+    <div class="s-head">
+      <button class="back" id="backBtn">‹</button>
+      <div class="s-title">
+        <div class="st-date" id="stDate">Today</div>
+        <div class="st-edit" id="stEditToggle">edit date ▾</div>
+      </div>
+      <input type="date" class="s-datepick" id="sDatePick">
+    </div>
+  </header>
+  <div id="groups"></div>
+  <div class="summary">
+    <div class="stats">
+      <div class="stat-blk"><span class="n" id="sumEx">0</span><span class="l">exercises</span></div>
+      <div class="stat-blk"><span class="n" id="sumSets">0</span><span class="l">sets</span></div>
+      <div class="stat-blk"><span class="n" id="sumVol">0</span><span class="l">volume</span></div>
+    </div>
+    <button class="done" id="doneBtn">Done</button>
+  </div>
+</section>
+
+<script>
+/* ---------- category schema ---------- */
+const CATS = [
+  { id:'cardio', name:'Cardio', color:'#2b4cf0', kind:'cardio', hint:'e.g. Run, Bike, Row' },
+  { id:'core', name:'Core', color:'#c2410c', kind:'lift',
+    sub:['Abs','Lower back'], hint:'e.g. Hanging knee raise' },
+  { id:'upper', name:'Upper Body', color:'#7c3aed', kind:'lift',
+    sub:['Horizontal push','Horizontal pull','Vertical push','Vertical pull'], hint:'e.g. Bench press' },
+  { id:'lower', name:'Lower Body', color:'#0f766e', kind:'lift',
+    sub:['Squat','Hinge','Other'], hint:'e.g. Back squat' },
+];
+const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+
+/* ---------- IndexedDB ---------- */
+let db;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('split-tracker',1);
+    r.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('entries')){
+        const s = d.createObjectStore('entries',{keyPath:'id'});
+        s.createIndex('date','date');
+      }
+    };
+    r.onsuccess = e=>{db=e.target.result;res()};
+    r.onerror = e=>rej(e.target.error);
+  });
+}
+function tx(mode){return db.transaction('entries',mode).objectStore('entries');}
+function putEntry(o){return new Promise((res,rej)=>{const r=tx('readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function delEntry(id){return new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function allEntries(){return new Promise((res,rej)=>{const r=tx('readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
+
+/* ---------- state ---------- */
+let entries = [];
+let currentDate = null;          // active session date (session view only)
+let openGroups = new Set();
+let formOpen = new Set();
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function dayEntries(date){return entries.filter(e=>e.date===date);}
+function sessionDates(){return [...new Set(entries.map(e=>e.date))].sort().reverse();}
+
+/* ---------- view routing ---------- */
+const homeView=document.getElementById('homeView');
+const sessionView=document.getElementById('sessionView');
+function showHome(){
+  sessionView.classList.remove('active');
+  homeView.classList.add('active');
+  window.scrollTo(0,0);
+  renderHome();
+}
+function openSession(date){
+  currentDate = date;
+  openGroups = new Set(['lower']);   // one open so interaction is obvious
+  formOpen = new Set();
+  homeView.classList.remove('active');
+  sessionView.classList.add('active');
+  window.scrollTo(0,0);
+  document.getElementById('sDatePick').value = date;
+  document.getElementById('sDatePick').classList.remove('show');
+  renderSession();
+}
+
+/* ---------- HOME rendering ---------- */
+function renderHome(){
+  const host=document.getElementById('homeList');
+  const dates=sessionDates();
+  if(dates.length===0){
+    host.innerHTML=`<div class="home-empty">No sessions yet.<br><b>Tap \u201CStart session\u201D to log your first.</b></div>`;
+    return;
+  }
+  host.innerHTML='';
+  dates.forEach(date=>{
+    const items=dayEntries(date);
+    const sets=items.reduce((a,e)=>a+(e.sets?e.sets.length:0),0);
+    let vol=0;
+    items.forEach(e=>e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;}));
+    const catsHit=CATS.filter(c=>items.some(e=>e.cat===c.id));
+    const card=document.createElement('button');
+    card.className='card';
+    const volBlock = items.length
+      ? `<div class="cvol"><div class="n">${vol>=1000?(vol/1000).toFixed(1)+'k':Math.round(vol)}</div><div class="l">volume</div></div>`
+      : `<div class="cvol"><span class="empty-tag">empty</span></div>`;
+    const dots = catsHit.length
+      ? catsHit.map(c=>`<span class="cdot" style="background:${c.color}"></span>`).join('')
+      : '<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">nothing logged</span>';
+    card.innerHTML=`
+      <div class="cbody">
+        <div class="cdate">${fmtDate(date)}</div>
+        <div class="cmeta">${items.length} exercise${items.length!==1?'s':''} \u00B7 ${sets} set${sets!==1?'s':''}</div>
+        <div class="cdots">${dots}</div>
+      </div>
+      ${volBlock}`;
+    card.onclick=()=>openSession(date);
+    host.appendChild(card);
+  });
+}
+
+/* start session: if today already exists, open it; else create fresh */
+document.getElementById('fab').onclick=()=>openSession(todayStr());
+
+/* ---------- SESSION rendering ---------- */
+const groupsEl=document.getElementById('groups');
+function renderSession(){
+  document.getElementById('stDate').textContent=fmtDate(currentDate);
+  const todays=dayEntries(currentDate);
+  groupsEl.innerHTML='';
+  CATS.forEach(cat=>{
+    const items=todays.filter(e=>e.cat===cat.id);
+    const grp=document.createElement('section');
+    grp.className='group'+(openGroups.has(cat.id)?' open':'');
+    const head=document.createElement('button');
+    head.className='g-head';
+    head.innerHTML=`<span class="g-tag" style="background:${cat.color}"></span>
+      <span class="g-title">${cat.name}</span>
+      <span class="g-count">${items.length}</span>
+      <span class="g-chev">\u25B6</span>`;
+    head.onclick=()=>{openGroups.has(cat.id)?openGroups.delete(cat.id):openGroups.add(cat.id);renderSession();};
+    grp.appendChild(head);
+    const body=document.createElement('div');
+    body.className='g-body';
+    items.forEach(it=>body.appendChild(entryRow(it)));
+    body.appendChild(addBlock(cat));
+    grp.appendChild(body);
+    groupsEl.appendChild(grp);
+  });
+  renderSummary(todays);
+}
+
+function entryRow(it){
+  const cat=CAT_MAP[it.cat];
+  const el=document.createElement('div');
+  el.className='entry';
+  let statLine='';
+  if(cat.kind==='cardio'){
+    const bits=[];
+    if(it.distance)bits.push(`<b>${escapeHtml(it.distance)}</b>`);
+    if(it.time)bits.push(`<b>${escapeHtml(it.time)}</b>`);
+    statLine=bits.join(' \u00B7 ')||'\u2014';
+  }else{
+    const sets=it.sets||[];
+    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`\u00D7<b>${escapeHtml(s.weight)}</b>`;return t;}).join('  ')||'\u2014';
+    statLine=`${sets.length} set${sets.length!==1?'s':''} \u00B7 ${parts}`;
+  }
+  el.innerHTML=`<div class="ebody">
+      ${it.sub?`<span class="subtype">${it.sub}</span><br>`:''}
+      <div class="name">${escapeHtml(it.name)}</div>
+      <div class="stat">${statLine}</div>
+    </div>
+    <button class="del" aria-label="delete">\u00D7</button>`;
+  el.querySelector('.del').onclick=async()=>{
+    await delEntry(it.id);
+    entries=entries.filter(e=>e.id!==it.id);
+    renderSession();
+  };
+  return el;
+}
+
+function addBlock(cat){
+  const wrap=document.createElement('div');
+  if(!formOpen.has(cat.id)){
+    const t=document.createElement('button');
+    t.className='add-trigger';
+    t.textContent='+ log '+cat.name.toLowerCase();
+    t.onclick=()=>{formOpen.add(cat.id);openGroups.add(cat.id);renderSession();};
+    wrap.appendChild(t);
+    return wrap;
+  }
+  const f=document.createElement('div');
+  f.className='add';
+  const nameId='n_'+cat.id;
+  let inner='';
+  if(cat.sub){
+    inner+=`<div class="field"><label>Type</label><select id="sub_${cat.id}">`+
+      cat.sub.map(s=>`<option>${s}</option>`).join('')+`</select></div>`;
+  }
+  inner+=`<div class="field"><label>Exercise</label>
+    <input id="${nameId}" placeholder="${cat.hint}" autocomplete="off"></div>`;
+  if(cat.kind==='cardio'){
+    inner+=`<div class="row2">
+      <div class="field"><label>Distance</label><input id="dist_${cat.id}" placeholder="5 km" autocomplete="off"></div>
+      <div class="field"><label>Time</label><input id="time_${cat.id}" placeholder="28 min" autocomplete="off"></div>
+    </div>`;
+  }else{
+    inner+=`<div class="field"><label>Sets</label><div id="sets_${cat.id}"></div>
+      <button class="addset" id="addset_${cat.id}">+ add set</button></div>`;
+  }
+  inner+=`<div class="add-actions">
+      <button class="btn-save" id="save_${cat.id}">Save</button>
+      <button class="btn-cancel" id="cancel_${cat.id}">Cancel</button>
+    </div>`;
+  f.innerHTML=inner;
+  wrap.appendChild(f);
+
+  let setRows=[];
+  if(cat.kind==='lift'){
+    const setsHost=f.querySelector('#sets_'+cat.id);
+    const addSet=(reps='',weight='')=>{
+      const line=document.createElement('div');
+      line.className='setline';
+      line.innerHTML=`<span class="idx">${setRows.length+1}</span>
+        <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${reps}">
+        <input type="number" inputmode="decimal" placeholder="wt (opt)" class="s-wt" value="${weight}">
+        <button class="rm">\u00D7</button>`;
+      line.querySelector('.rm').onclick=()=>{
+        line.remove();
+        setRows=setRows.filter(r=>r!==line);
+        [...setsHost.children].forEach((c,i)=>c.querySelector('.idx').textContent=i+1);
+      };
+      setsHost.appendChild(line);
+      setRows.push(line);
+    };
+    f.querySelector('#addset_'+cat.id).onclick=()=>addSet();
+    addSet();
+  }
+
+  f.querySelector('#cancel_'+cat.id).onclick=()=>{formOpen.delete(cat.id);renderSession();};
+  f.querySelector('#save_'+cat.id).onclick=async()=>{
+    const nameInput=f.querySelector('#'+nameId);
+    const name=nameInput.value.trim();
+    if(!name){nameInput.focus();return;}
+    const obj={id:uid(),date:currentDate,cat:cat.id,name,ts:Date.now()};
+    if(cat.sub)obj.sub=f.querySelector('#sub_'+cat.id).value;
+    if(cat.kind==='cardio'){
+      obj.distance=f.querySelector('#dist_'+cat.id).value.trim();
+      obj.time=f.querySelector('#time_'+cat.id).value.trim();
+    }else{
+      obj.sets=setRows.map(r=>({reps:r.querySelector('.s-reps').value.trim(),weight:r.querySelector('.s-wt').value.trim()}))
+        .filter(s=>s.reps!==''||s.weight!=='');
+      if(obj.sets.length===0)obj.sets=[{reps:'',weight:''}];
+    }
+    await putEntry(obj);
+    entries.push(obj);
+    formOpen.delete(cat.id);
+    renderSession();
+  };
+  return wrap;
+}
+
+function renderSummary(todays){
+  const ex=todays.length;
+  let sets=0,vol=0;
+  todays.forEach(e=>{if(e.sets){sets+=e.sets.length;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;});}});
+  document.getElementById('sumEx').textContent=ex;
+  document.getElementById('sumSets').textContent=sets;
+  document.getElementById('sumVol').textContent=vol>=1000?(vol/1000).toFixed(1)+'k':Math.round(vol);
+}
+
+/* ---------- session nav / date edit ---------- */
+document.getElementById('backBtn').onclick=showHome;
+document.getElementById('doneBtn').onclick=showHome;
+const sDatePick=document.getElementById('sDatePick');
+document.getElementById('stEditToggle').onclick=()=>sDatePick.classList.toggle('show');
+sDatePick.onchange=async()=>{
+  const newDate=sDatePick.value;
+  if(!newDate||newDate===currentDate){sDatePick.classList.remove('show');return;}
+  const moving=dayEntries(currentDate);
+  for(const it of moving){it.date=newDate;await putEntry(it);}
+  currentDate=newDate;
+  sDatePick.classList.remove('show');
+  renderSession();
+};
+
+/* ---------- export / import ---------- */
+document.getElementById('exportBtn').onclick=()=>{
+  const payload={app:'split-tracker',version:1,exportedAt:new Date().toISOString(),count:entries.length,entries};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='split-backup-'+todayStr()+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+const importFile=document.getElementById('importFile');
+document.getElementById('importBtn').onclick=()=>importFile.click();
+importFile.onchange=()=>{
+  const file=importFile.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    let data;
+    try{data=JSON.parse(reader.result);}
+    catch{alert('That file isn\u2019t valid JSON. Pick a backup exported from Split.');importFile.value='';return;}
+    const incoming=Array.isArray(data)?data:data.entries;
+    if(!Array.isArray(incoming)){alert('No entries found in that file.');importFile.value='';return;}
+    const existing=new Map(entries.map(e=>[e.id,e]));
+    let added=0,updated=0;
+    for(const raw of incoming){
+      if(!raw||typeof raw!=='object'||!raw.id||!raw.date||!raw.cat)continue;
+      const clean={id:String(raw.id),date:String(raw.date),cat:String(raw.cat),name:String(raw.name||''),ts:raw.ts||Date.now()};
+      if(raw.sub)clean.sub=String(raw.sub);
+      if(Array.isArray(raw.sets))clean.sets=raw.sets.map(s=>({reps:String(s.reps??''),weight:String(s.weight??'')}));
+      if(raw.distance!=null)clean.distance=String(raw.distance);
+      if(raw.time!=null)clean.time=String(raw.time);
+      if(existing.has(clean.id))updated++;else added++;
+      existing.set(clean.id,clean);
+      await putEntry(clean);
+    }
+    entries=[...existing.values()];
+    importFile.value='';
+    renderHome();
+    alert(`Import complete \u2014 ${added} added, ${updated} updated.`);
+  };
+  reader.readAsText(file);
+};
+
+/* ---------- utils ---------- */
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtDate(d){
+  const dt=new Date(d+'T00:00:00');
+  const t=todayStr();
+  if(d===t)return 'Today';
+  const y=new Date();y.setDate(y.getDate()-1);
+  const yStr=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+  if(d===yStr)return 'Yesterday';
+  return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
+    (dt.getFullYear()!==new Date().getFullYear()?' '+dt.getFullYear():'');
+}
+
+/* ---------- boot ---------- */
+(async function(){
+  await openDB();
+  entries=await allEntries();
+  renderHome();
+})();
+</script>
+</body>
+</html>
