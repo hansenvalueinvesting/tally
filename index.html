@@ -42,6 +42,7 @@
     --mono:'JetBrains Mono',monospace;
     --disp:'Space Grotesk',system-ui,sans-serif;
     --ui:'Inter',system-ui,sans-serif;
+    --nav-h:56px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
@@ -69,12 +70,47 @@
   .brand .dot{color:var(--accent)}
   .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:lowercase}
   .brand .spacer{flex:1}
-  .tool{background:transparent;border:1px solid var(--line-strong);color:var(--dim);
-    font-family:var(--mono);font-size:11px;letter-spacing:.4px;padding:8px 11px;border-radius:8px}
-  .tool:active{background:var(--panel-2);color:var(--ink)}
+  .page-title{font-family:var(--disp);font-size:28px;font-weight:700;letter-spacing:-.6px;padding:0 2px}
 
-  /* ===== HOME: session cards ===== */
-  #homeList{padding:8px 16px calc(env(safe-area-inset-bottom) + 116px)}
+  /* ===== bottom nav ===== */
+  .nav{
+    position:fixed;bottom:0;left:0;right:0;z-index:50;max-width:640px;margin:0 auto;
+    background:rgba(10,10,10,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);
+  }
+  .in-session .nav{display:none}
+  .nav .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:9px 0 8px;color:var(--faint);font-size:9.5px;font-family:var(--mono);letter-spacing:.6px}
+  .nav .nav-btn.active{color:var(--accent)}
+  .nav .nav-btn svg{width:22px;height:22px;display:block}
+  .nav .nav-btn:active{opacity:.6}
+
+  /* ===== HOME / dashboard ===== */
+  #dash{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .kpi{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:15px 16px}
+  .kpi .n{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;color:var(--ink)}
+  .kpi.hero .n{color:var(--accent)}
+  .kpi .n .u{font-size:13px;font-weight:500;color:var(--faint)}
+  .kpi .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:9px}
+  .d-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+    padding:16px 16px 15px;margin-bottom:14px}
+  .d-card .d-title{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-bottom:16px}
+  .bars{display:flex;align-items:flex-end;gap:7px}
+  .bars .col{flex:1;display:flex;flex-direction:column;align-items:center}
+  .bars .bar{width:100%;background:var(--line-strong);border-radius:4px 4px 0 0;min-height:4px}
+  .bars .col.last .bar{background:var(--accent)}
+  .bars .bcap{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:7px;white-space:nowrap}
+  .catrow{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .catrow:last-child{margin-bottom:0}
+  .catrow .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .catrow .cname{font-size:13px;width:92px;flex-shrink:0}
+  .catrow .ctrack{flex:1;height:6px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+  .catrow .cfill{height:100%;border-radius:3px;min-width:2px}
+  .catrow .cnum{font-family:var(--mono);font-size:12px;color:var(--dim);width:22px;text-align:right;flex-shrink:0}
+
+  /* ===== LOG: session cards ===== */
+  #logList{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 108px)}
   .card{
     border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
     padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;
@@ -94,10 +130,10 @@
     padding:64px 24px;line-height:1.8}
   .home-empty b{color:var(--dim);font-weight:500}
 
-  /* FAB — pill, accent, the one bold element */
+  /* FAB — pill, accent, the one bold element (log tab only) */
   .fab{
     position:fixed;left:50%;transform:translateX(-50%);
-    bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:40;
+    bottom:calc(env(safe-area-inset-bottom) + var(--nav-h) + 22px);z-index:45;
     background:var(--accent);color:var(--on-accent);font-weight:700;font-size:15px;letter-spacing:.1px;
     padding:15px 28px;border-radius:100px;display:flex;align-items:center;gap:9px;
     box-shadow:0 6px 24px rgba(204,255,51,.28),0 2px 8px rgba(0,0,0,.5);
@@ -186,34 +222,59 @@
     padding:11px 20px;border-radius:9px;font-weight:600;font-size:13px}
   .summary .done:active{opacity:.85}
 
+  /* ===== SETTINGS ===== */
+  #settings{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
+  .set-sec{margin-bottom:24px}
+  .set-sec-title{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);
+    margin-bottom:10px;padding-left:2px}
+  .set-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 16px;
+    margin-bottom:8px;font-size:14px;color:var(--ink);text-align:left}
+  .set-item:active{background:var(--panel-2)}
+  .set-item .si-desc{color:var(--faint);font-family:var(--mono);font-size:11px;margin-top:3px}
+  .set-item .chev{color:var(--faint);font-family:var(--mono);flex-shrink:0}
+  .set-item.install{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
+    font-weight:700;justify-content:center;box-shadow:0 4px 18px rgba(204,255,51,.22)}
+  .set-note{color:var(--faint);font-family:var(--mono);font-size:11px;line-height:1.7;padding:2px;margin:8px 0 0}
+  .instr{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
+  .instr .plat{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin:0 0 7px}
+  .instr .plat:not(:first-child){margin-top:16px}
+  .instr .plat .pi{color:var(--accent)}
+  .instr ol{margin:0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.75}
+  .instr ol b{color:var(--ink);font-weight:600}
+
   input[type=file]{display:none}
 </style>
 </head>
 <body>
 
-<!-- ============ HOME VIEW ============ -->
+<!-- ============ HOME / DASHBOARD ============ -->
 <section class="view active" id="homeView">
   <header>
     <div class="brand">
-      <h1>Tally<span class="dot">.</span></h1>
+      <h1>tally<span class="dot">.</span></h1>
       <small>training log</small>
-      <span class="spacer"></span>
-      <button class="tool" id="exportBtn">export</button>
-      <button class="tool" id="importBtn">import</button>
     </div>
   </header>
-  <div id="homeList"></div>
-  <button class="fab" id="fab"><span class="plus">+</span> Start session</button>
-  <input type="file" id="importFile" accept="application/json,.json">
+  <div id="dash"></div>
 </section>
 
-<!-- ============ SESSION VIEW ============ -->
+<!-- ============ LOG (session list) ============ -->
+<section class="view" id="logView">
+  <header>
+    <h2 class="page-title">log</h2>
+  </header>
+  <div id="logList"></div>
+  <button class="fab" id="fab"><span class="plus">+</span> start session</button>
+</section>
+
+<!-- ============ SESSION detail (drill-in from log) ============ -->
 <section class="view" id="sessionView">
   <header>
     <div class="s-head">
       <button class="back" id="backBtn">‹</button>
       <div class="s-title">
-        <div class="st-date" id="stDate">Today</div>
+        <div class="st-date" id="stDate">today</div>
         <div class="st-edit" id="stEditToggle">edit date ▾</div>
       </div>
       <input type="date" class="s-datepick" id="sDatePick">
@@ -226,9 +287,72 @@
       <div class="stat-blk"><span class="n" id="sumSets">0</span><span class="l">sets</span></div>
       <div class="stat-blk"><span class="n" id="sumVol">0</span><span class="l">volume</span></div>
     </div>
-    <button class="done" id="doneBtn">Done</button>
+    <button class="done" id="doneBtn">done</button>
   </div>
 </section>
+
+<!-- ============ SETTINGS ============ -->
+<section class="view" id="settingsView">
+  <header>
+    <h2 class="page-title">settings</h2>
+  </header>
+  <div id="settings">
+    <div class="set-sec">
+      <div class="set-sec-title">data</div>
+      <button class="set-item" id="exportBtn">
+        <div><div>export data</div><div class="si-desc">download a json backup</div></div>
+        <span class="chev">↓</span>
+      </button>
+      <button class="set-item" id="importBtn">
+        <div><div>import data</div><div class="si-desc">restore from a backup file</div></div>
+        <span class="chev">↑</span>
+      </button>
+      <input type="file" id="importFile" accept="application/json,.json">
+      <p class="set-note">everything is stored locally on this device. export regularly to keep a backup.</p>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-title">install app</div>
+      <button class="set-item install" id="installBtn" hidden>+ install to home screen</button>
+      <div class="instr">
+        <p class="plat"><span class="pi">◆</span> iphone &amp; ipad — safari</p>
+        <ol>
+          <li>tap the <b>share</b> icon (the square with an arrow)</li>
+          <li>scroll down and choose <b>add to home screen</b></li>
+          <li>tap <b>add</b> — tally lands on your home screen</li>
+        </ol>
+        <p class="plat"><span class="pi">◆</span> android — chrome</p>
+        <ol>
+          <li>tap the <b>⋮</b> menu (top right)</li>
+          <li>choose <b>install app</b> or <b>add to home screen</b></li>
+          <li>confirm to add it</li>
+        </ol>
+      </div>
+      <p class="set-note">once installed it opens full-screen and works offline.</p>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-title">about</div>
+      <p class="set-note">tally — a quiet training log. no accounts, no cloud, no upsells. just you and the work.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="nav" id="nav">
+  <button class="nav-btn active" data-tab="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.8 12 3.5l9 7.3"/><path d="M5.5 9.3V20h13V9.3"/></svg>
+    <span>home</span>
+  </button>
+  <button class="nav-btn" data-tab="log">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg>
+    <span>log</span>
+  </button>
+  <button class="nav-btn" data-tab="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="10" cy="8" r="2.3"/><circle cx="16" cy="16" r="2.3"/></svg>
+    <span>settings</span>
+  </button>
+</nav>
 
 <script>
 /* ---------- category schema ---------- */
@@ -266,54 +390,122 @@ function allEntries(){return new Promise((res,rej)=>{const r=tx('readonly').getA
 
 /* ---------- state ---------- */
 let entries = [];
-let currentDate = null;          // active session date (session view only)
+let currentDate = null;          // active session date (session detail only)
 let openGroups = new Set();
 let formOpen = new Set();
+let activeTab = 'home';
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function dayEntries(date){return entries.filter(e=>e.date===date);}
 function sessionDates(){return [...new Set(entries.map(e=>e.date))].sort().reverse();}
+function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));}
+function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
 
 /* ---------- view routing ---------- */
-const homeView=document.getElementById('homeView');
-const sessionView=document.getElementById('sessionView');
-function showHome(){
+const views = {
+  home: document.getElementById('homeView'),
+  log: document.getElementById('logView'),
+  settings: document.getElementById('settingsView'),
+};
+const sessionView = document.getElementById('sessionView');
+
+function switchTab(tab){
+  activeTab = tab;
   sessionView.classList.remove('active');
-  homeView.classList.add('active');
+  Object.values(views).forEach(v=>v.classList.remove('active'));
+  views[tab].classList.add('active');
+  document.body.classList.remove('in-session');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   window.scrollTo(0,0);
-  renderHome();
+  if(tab==='home') renderDashboard();
+  else if(tab==='log') renderLog();
 }
+document.querySelectorAll('.nav-btn').forEach(b=>{ b.onclick=()=>switchTab(b.dataset.tab); });
+
 function openSession(date){
   currentDate = date;
   openGroups = new Set(['lower']);   // one open so interaction is obvious
   formOpen = new Set();
-  homeView.classList.remove('active');
+  Object.values(views).forEach(v=>v.classList.remove('active'));
   sessionView.classList.add('active');
+  document.body.classList.add('in-session');
   window.scrollTo(0,0);
   document.getElementById('sDatePick').value = date;
   document.getElementById('sDatePick').classList.remove('show');
   renderSession();
 }
 
-/* ---------- HOME rendering ---------- */
-function renderHome(){
-  const host=document.getElementById('homeList');
+/* ---------- DASHBOARD rendering ---------- */
+function renderDashboard(){
+  const host=document.getElementById('dash');
+  if(entries.length===0){
+    host.innerHTML=`<div class="home-empty">no data yet.<br><b>log a session to see your stats.</b></div>`;
+    return;
+  }
+  const dates=sessionDates();
+  const totalSessions=dates.length;
+  let totalVol=0;
+  entries.forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-6);
+  const cut=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
+  const weekSessions=dates.filter(d=>d>=cut).length;
+  const avgVol=totalSessions?totalVol/totalSessions:0;
+
+  const recent=dates.slice(0,8).reverse();
+  const vols=recent.map(d=>({d,v:sessionVolume(d)}));
+  const maxV=Math.max(1,...vols.map(x=>x.v));
+  const bars=vols.map((x,i)=>{
+    const h=x.v?Math.max(6,Math.round(x.v/maxV*88)):4;
+    const dd=new Date(x.d+'T00:00:00');
+    const cap=dd.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    return `<div class="col${i===vols.length-1?' last':''}"><div class="bar" style="height:${h}px"></div><div class="bcap">${cap}</div></div>`;
+  }).join('');
+
+  const catCounts=CATS.map(c=>({c,n:entries.filter(e=>e.cat===c.id).length}));
+  const maxC=Math.max(1,...catCounts.map(x=>x.n));
+  const catRows=catCounts.map(({c,n})=>`
+    <div class="catrow">
+      <span class="cdot" style="background:${c.color}"></span>
+      <span class="cname">${c.name}</span>
+      <span class="ctrack"><span class="cfill" style="width:${Math.round(n/maxC*100)}%;background:${c.color}"></span></span>
+      <span class="cnum">${n}</span>
+    </div>`).join('');
+
+  host.innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">total volume</div></div>
+      <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
+      <div class="kpi"><div class="n">${weekSessions}</div><div class="l">this week</div></div>
+      <div class="kpi"><div class="n">${fmtVol(avgVol)}<span class="u"> lb</span></div><div class="l">avg / session</div></div>
+    </div>
+    <div class="d-card">
+      <div class="d-title">volume · recent sessions</div>
+      <div class="bars">${bars}</div>
+    </div>
+    <div class="d-card">
+      <div class="d-title">exercises by category</div>
+      ${catRows}
+    </div>`;
+}
+
+/* ---------- LOG (session list) rendering ---------- */
+function renderLog(){
+  const host=document.getElementById('logList');
   const dates=sessionDates();
   if(dates.length===0){
-    host.innerHTML=`<div class="home-empty">No sessions yet.<br><b>Tap \u201CStart session\u201D to log your first.</b></div>`;
+    host.innerHTML=`<div class="home-empty">no sessions yet.<br><b>tap “start session” to log your first.</b></div>`;
     return;
   }
   host.innerHTML='';
   dates.forEach(date=>{
     const items=dayEntries(date);
     const sets=items.reduce((a,e)=>a+(e.sets?e.sets.length:0),0);
-    let vol=0;
-    items.forEach(e=>e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;}));
+    const vol=sessionVolume(date);
     const catsHit=CATS.filter(c=>items.some(e=>e.cat===c.id));
     const card=document.createElement('button');
     card.className='card';
     const volBlock = items.length
-      ? `<div class="cvol"><div class="n">${vol>=1000?(vol/1000).toFixed(1)+'k':Math.round(vol)}</div><div class="l">volume</div></div>`
+      ? `<div class="cvol"><div class="n">${fmtVol(vol)}</div><div class="l">volume</div></div>`
       : `<div class="cvol"><span class="empty-tag">empty</span></div>`;
     const dots = catsHit.length
       ? catsHit.map(c=>`<span class="cdot" style="background:${c.color}"></span>`).join('')
@@ -321,7 +513,7 @@ function renderHome(){
     card.innerHTML=`
       <div class="cbody">
         <div class="cdate">${fmtDate(date)}</div>
-        <div class="cmeta">${items.length} exercise${items.length!==1?'s':''} \u00B7 ${sets} set${sets!==1?'s':''}</div>
+        <div class="cmeta">${items.length} exercise${items.length!==1?'s':''} · ${sets} set${sets!==1?'s':''}</div>
         <div class="cdots">${dots}</div>
       </div>
       ${volBlock}`;
@@ -333,7 +525,7 @@ function renderHome(){
 /* start session: if today already exists, open it; else create fresh */
 document.getElementById('fab').onclick=()=>openSession(todayStr());
 
-/* ---------- SESSION rendering ---------- */
+/* ---------- SESSION detail rendering ---------- */
 const groupsEl=document.getElementById('groups');
 function renderSession(){
   document.getElementById('stDate').textContent=fmtDate(currentDate);
@@ -348,7 +540,7 @@ function renderSession(){
     head.innerHTML=`<span class="g-tag" style="background:${cat.color}"></span>
       <span class="g-title">${cat.name}</span>
       <span class="g-count">${items.length}</span>
-      <span class="g-chev">\u25B6</span>`;
+      <span class="g-chev">▶</span>`;
     head.onclick=()=>{openGroups.has(cat.id)?openGroups.delete(cat.id):openGroups.add(cat.id);renderSession();};
     grp.appendChild(head);
     const body=document.createElement('div');
@@ -370,18 +562,18 @@ function entryRow(it){
     const bits=[];
     if(it.distance)bits.push(`<b>${escapeHtml(it.distance)}</b>`);
     if(it.time)bits.push(`<b>${escapeHtml(it.time)}</b>`);
-    statLine=bits.join(' \u00B7 ')||'\u2014';
+    statLine=bits.join(' · ')||'—';
   }else{
     const sets=it.sets||[];
-    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`\u00D7<b>${escapeHtml(s.weight)}</b>\u2009lb`;return t;}).join('  ')||'\u2014';
-    statLine=`${sets.length} set${sets.length!==1?'s':''} \u00B7 ${parts}`;
+    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`×<b>${escapeHtml(s.weight)}</b> lb`;return t;}).join('  ')||'—';
+    statLine=`${sets.length} set${sets.length!==1?'s':''} · ${parts}`;
   }
   el.innerHTML=`<div class="ebody">
       ${it.sub?`<span class="subtype">${it.sub}</span><br>`:''}
       <div class="name">${escapeHtml(it.name)}</div>
       <div class="stat">${statLine}</div>
     </div>
-    <button class="del" aria-label="delete">\u00D7</button>`;
+    <button class="del" aria-label="delete">×</button>`;
   el.querySelector('.del').onclick=async()=>{
     await delEntry(it.id);
     entries=entries.filter(e=>e.id!==it.id);
@@ -435,7 +627,7 @@ function addBlock(cat){
       line.innerHTML=`<span class="idx">${setRows.length+1}</span>
         <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${reps}">
         <input type="number" inputmode="decimal" placeholder="lb (opt)" class="s-wt" value="${weight}">
-        <button class="rm">\u00D7</button>`;
+        <button class="rm">×</button>`;
       line.querySelector('.rm').onclick=()=>{
         line.remove();
         setRows=setRows.filter(r=>r!==line);
@@ -477,12 +669,12 @@ function renderSummary(todays){
   todays.forEach(e=>{if(e.sets){sets+=e.sets.length;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;});}});
   document.getElementById('sumEx').textContent=ex;
   document.getElementById('sumSets').textContent=sets;
-  document.getElementById('sumVol').textContent=vol>=1000?(vol/1000).toFixed(1)+'k':Math.round(vol);
+  document.getElementById('sumVol').textContent=fmtVol(vol);
 }
 
 /* ---------- session nav / date edit ---------- */
-document.getElementById('backBtn').onclick=showHome;
-document.getElementById('doneBtn').onclick=showHome;
+document.getElementById('backBtn').onclick=()=>switchTab('log');
+document.getElementById('doneBtn').onclick=()=>switchTab('log');
 const sDatePick=document.getElementById('sDatePick');
 document.getElementById('stEditToggle').onclick=()=>sDatePick.classList.toggle('show');
 sDatePick.onchange=async()=>{
@@ -497,11 +689,11 @@ sDatePick.onchange=async()=>{
 
 /* ---------- export / import ---------- */
 document.getElementById('exportBtn').onclick=()=>{
-  const payload={app:'split-tracker',version:1,exportedAt:new Date().toISOString(),count:entries.length,entries};
+  const payload={app:'tally',version:1,exportedAt:new Date().toISOString(),count:entries.length,entries};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='split-backup-'+todayStr()+'.json';
+  a.href=url;a.download='tally-backup-'+todayStr()+'.json';
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
@@ -514,7 +706,7 @@ importFile.onchange=()=>{
   reader.onload=async()=>{
     let data;
     try{data=JSON.parse(reader.result);}
-    catch{alert('That file isn\u2019t valid JSON. Pick a backup exported from Split.');importFile.value='';return;}
+    catch{alert('That file isn’t valid JSON. Pick a backup exported from tally.');importFile.value='';return;}
     const incoming=Array.isArray(data)?data:data.entries;
     if(!Array.isArray(incoming)){alert('No entries found in that file.');importFile.value='';return;}
     const existing=new Map(entries.map(e=>[e.id,e]));
@@ -532,11 +724,28 @@ importFile.onchange=()=>{
     }
     entries=[...existing.values()];
     importFile.value='';
-    renderHome();
-    alert(`Import complete \u2014 ${added} added, ${updated} updated.`);
+    renderLog();renderDashboard();
+    alert(`Import complete — ${added} added, ${updated} updated.`);
   };
   reader.readAsText(file);
 };
+
+/* ---------- install to home screen ---------- */
+let deferredPrompt=null;
+const installBtn=document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  installBtn.hidden=false;
+});
+installBtn.onclick=async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  installBtn.hidden=true;
+};
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;installBtn.hidden=true;});
 
 /* ---------- utils ---------- */
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -549,8 +758,13 @@ function fmtDate(d){
 (async function(){
   await openDB();
   entries=await allEntries();
-  renderHome();
+  switchTab('home');
 })();
+
+/* ---------- offline / installable (service worker) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
