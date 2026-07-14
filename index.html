@@ -184,6 +184,10 @@
   .entry .name{font-size:14px;font-weight:600;word-break:break-word}
   .entry .stat{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:3px}
   .entry .stat b{color:var(--ink);font-weight:600}
+  .eactions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+  .entry .edit{color:var(--faint);padding:3px 4px;display:flex;align-items:center}
+  .entry .edit svg{width:15px;height:15px;display:block}
+  .entry .edit:active{color:var(--accent)}
   .entry .del{color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
   .entry .del:active{color:var(--rose)}
   .subtype{font-family:var(--mono);font-size:9.5px;text-transform:lowercase;letter-spacing:.8px;
@@ -404,6 +408,7 @@ let entries = [];
 let currentDate = null;          // active session date (session detail only)
 let openGroups = new Set();
 let formOpen = new Set();
+let editing = new Set();          // entry ids currently being edited
 let activeTab = 'home';
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -478,6 +483,7 @@ document.querySelectorAll('.nav-btn').forEach(b=>{ b.onclick=()=>switchTab(b.dat
 function openSession(date){
   currentDate = date;
   openGroups = new Set(['lower']);   // one open so interaction is obvious
+  editing = new Set();
   formOpen = new Set();
   Object.values(views).forEach(v=>v.classList.remove('active'));
   sessionView.classList.add('active');
@@ -645,6 +651,12 @@ function renderSession(){
 
 function entryRow(it){
   const cat=CAT_MAP[it.cat];
+  if(editing.has(it.id)){
+    return buildEntryForm(cat,it,{
+      onCancel:()=>{editing.delete(it.id);renderSession();},
+      onDone:()=>{editing.delete(it.id);renderSession();},
+    });
+  }
   const el=document.createElement('div');
   el.className='entry';
   let statLine='';
@@ -665,13 +677,100 @@ function entryRow(it){
       <div class="name">${escapeHtml(it.name)}</div>
       <div class="stat">${statLine}</div>
     </div>
-    <button class="del" aria-label="delete">×</button>`;
+    <div class="eactions">
+      <button class="edit" aria-label="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg></button>
+      <button class="del" aria-label="delete">×</button>
+    </div>`;
+  el.querySelector('.edit').onclick=()=>{editing.add(it.id);openGroups.add(it.cat);renderSession();};
   el.querySelector('.del').onclick=async()=>{
     await delEntry(it.id);
     entries=entries.filter(e=>e.id!==it.id);
+    editing.delete(it.id);
     renderSession();
   };
   return el;
+}
+
+/* Shared add/edit form. `existing` null = add a new entry; otherwise edit it in place. */
+function buildEntryForm(cat,existing,{onCancel,onDone}){
+  const f=document.createElement('div');
+  f.className='add';
+  let inner='';
+  if(cat.sub){
+    inner+=`<div class="field"><label>Type</label><select class="f-sub">`+
+      cat.sub.map(s=>`<option${existing&&existing.sub===s?' selected':''}>${s}</option>`).join('')+`</select></div>`;
+  }
+  inner+=`<div class="field"><label>Exercise</label>
+    <input class="f-name" placeholder="${cat.hint}" autocomplete="off" value="${existing?escapeHtml(existing.name):''}"></div>`;
+  if(cat.kind==='cardio'){
+    inner+=`<div class="row2">
+      <div class="field"><label>Distance</label><input class="f-dist" placeholder="5 km" autocomplete="off" value="${existing?escapeHtml(existing.distance||''):''}"></div>
+      <div class="field"><label>Time</label><input class="f-time" placeholder="28 min" autocomplete="off" value="${existing?escapeHtml(existing.time||''):''}"></div>
+    </div>`;
+  }else{
+    inner+=`<div class="field"><label>Sets</label><div class="f-sets"></div>
+      <button class="addset f-addset">+ add set</button></div>`;
+  }
+  inner+=`<div class="add-actions">
+      <button class="btn-save f-save">${existing?'Update':'Save'}</button>
+      <button class="btn-cancel f-cancel">Cancel</button>
+    </div>`;
+  f.innerHTML=inner;
+
+  let setRows=[];
+  if(cat.kind==='lift'){
+    const setsHost=f.querySelector('.f-sets');
+    const addSet=(reps='',weight='')=>{
+      const line=document.createElement('div');
+      line.className='setline';
+      line.innerHTML=`<span class="idx">${setRows.length+1}</span>
+        <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${escapeHtml(String(reps))}">
+        <input type="number" inputmode="decimal" placeholder="lb (opt)" class="s-wt" value="${escapeHtml(String(weight))}">
+        <button class="rm">×</button>`;
+      line.querySelector('.rm').onclick=()=>{
+        line.remove();
+        setRows=setRows.filter(r=>r!==line);
+        [...setsHost.children].forEach((c,i)=>c.querySelector('.idx').textContent=i+1);
+      };
+      setsHost.appendChild(line);
+      setRows.push(line);
+    };
+    f.querySelector('.f-addset').onclick=()=>addSet();
+    const initial=(existing&&existing.sets&&existing.sets.length)?existing.sets:[{reps:'',weight:''}];
+    initial.forEach(s=>addSet(s.reps,s.weight));
+  }
+
+  f.querySelector('.f-cancel').onclick=()=>onCancel&&onCancel();
+  f.querySelector('.f-save').onclick=async()=>{
+    const nameInput=f.querySelector('.f-name');
+    const name=nameInput.value.trim();
+    if(!name){nameInput.focus();return;}
+    const obj={
+      id: existing?existing.id:uid(),
+      date: existing?existing.date:currentDate,
+      cat: cat.id,
+      name,
+      ts: existing?existing.ts:Date.now(),
+    };
+    if(cat.sub)obj.sub=f.querySelector('.f-sub').value;
+    if(cat.kind==='cardio'){
+      obj.distance=f.querySelector('.f-dist').value.trim();
+      obj.time=f.querySelector('.f-time').value.trim();
+    }else{
+      obj.sets=setRows.map(r=>({reps:r.querySelector('.s-reps').value.trim(),weight:r.querySelector('.s-wt').value.trim()}))
+        .filter(s=>s.reps!==''||s.weight!=='');
+      if(obj.sets.length===0)obj.sets=[{reps:'',weight:''}];
+    }
+    await putEntry(obj);
+    if(existing){
+      const i=entries.findIndex(e=>e.id===obj.id);
+      if(i>=0)entries[i]=obj;else entries.push(obj);
+    }else{
+      entries.push(obj);
+    }
+    onDone&&onDone();
+  };
+  return f;
 }
 
 function addBlock(cat){
@@ -684,74 +783,10 @@ function addBlock(cat){
     wrap.appendChild(t);
     return wrap;
   }
-  const f=document.createElement('div');
-  f.className='add';
-  const nameId='n_'+cat.id;
-  let inner='';
-  if(cat.sub){
-    inner+=`<div class="field"><label>Type</label><select id="sub_${cat.id}">`+
-      cat.sub.map(s=>`<option>${s}</option>`).join('')+`</select></div>`;
-  }
-  inner+=`<div class="field"><label>Exercise</label>
-    <input id="${nameId}" placeholder="${cat.hint}" autocomplete="off"></div>`;
-  if(cat.kind==='cardio'){
-    inner+=`<div class="row2">
-      <div class="field"><label>Distance</label><input id="dist_${cat.id}" placeholder="5 km" autocomplete="off"></div>
-      <div class="field"><label>Time</label><input id="time_${cat.id}" placeholder="28 min" autocomplete="off"></div>
-    </div>`;
-  }else{
-    inner+=`<div class="field"><label>Sets</label><div id="sets_${cat.id}"></div>
-      <button class="addset" id="addset_${cat.id}">+ add set</button></div>`;
-  }
-  inner+=`<div class="add-actions">
-      <button class="btn-save" id="save_${cat.id}">Save</button>
-      <button class="btn-cancel" id="cancel_${cat.id}">Cancel</button>
-    </div>`;
-  f.innerHTML=inner;
-  wrap.appendChild(f);
-
-  let setRows=[];
-  if(cat.kind==='lift'){
-    const setsHost=f.querySelector('#sets_'+cat.id);
-    const addSet=(reps='',weight='')=>{
-      const line=document.createElement('div');
-      line.className='setline';
-      line.innerHTML=`<span class="idx">${setRows.length+1}</span>
-        <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${reps}">
-        <input type="number" inputmode="decimal" placeholder="lb (opt)" class="s-wt" value="${weight}">
-        <button class="rm">×</button>`;
-      line.querySelector('.rm').onclick=()=>{
-        line.remove();
-        setRows=setRows.filter(r=>r!==line);
-        [...setsHost.children].forEach((c,i)=>c.querySelector('.idx').textContent=i+1);
-      };
-      setsHost.appendChild(line);
-      setRows.push(line);
-    };
-    f.querySelector('#addset_'+cat.id).onclick=()=>addSet();
-    addSet();
-  }
-
-  f.querySelector('#cancel_'+cat.id).onclick=()=>{formOpen.delete(cat.id);renderSession();};
-  f.querySelector('#save_'+cat.id).onclick=async()=>{
-    const nameInput=f.querySelector('#'+nameId);
-    const name=nameInput.value.trim();
-    if(!name){nameInput.focus();return;}
-    const obj={id:uid(),date:currentDate,cat:cat.id,name,ts:Date.now()};
-    if(cat.sub)obj.sub=f.querySelector('#sub_'+cat.id).value;
-    if(cat.kind==='cardio'){
-      obj.distance=f.querySelector('#dist_'+cat.id).value.trim();
-      obj.time=f.querySelector('#time_'+cat.id).value.trim();
-    }else{
-      obj.sets=setRows.map(r=>({reps:r.querySelector('.s-reps').value.trim(),weight:r.querySelector('.s-wt').value.trim()}))
-        .filter(s=>s.reps!==''||s.weight!=='');
-      if(obj.sets.length===0)obj.sets=[{reps:'',weight:''}];
-    }
-    await putEntry(obj);
-    entries.push(obj);
-    formOpen.delete(cat.id);
-    renderSession();
-  };
+  wrap.appendChild(buildEntryForm(cat,null,{
+    onCancel:()=>{formOpen.delete(cat.id);renderSession();},
+    onDone:()=>{formOpen.delete(cat.id);renderSession();},
+  }));
   return wrap;
 }
 
