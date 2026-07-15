@@ -301,6 +301,16 @@
   .heat-legend{display:flex;align-items:center;gap:4px}
   .heat-legend .hc{width:11px;height:11px;border-radius:3px}
 
+  /* lifetime supplement counter (dashboard) — days taken + total amount */
+  .lc-row{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+  .lc-row:last-child{margin-bottom:0}
+  .lc-name{font-size:14px;font-weight:600;color:var(--ink);flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lc-stats{display:flex;gap:18px;flex-shrink:0}
+  .lc-stat{font-family:var(--mono);text-align:right}
+  .lc-stat .lc-n{font-size:15px;font-weight:700;color:var(--accent);line-height:1}
+  .lc-stat .lc-l{font-size:8.5px;text-transform:lowercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+
   input[type=file]{display:none}
 </style>
 </head>
@@ -633,6 +643,51 @@ function suppHeatmapCard(){
     </div>
   </div>`;
 }
+/* lifetime counter — groups the log by supplement name and tallies, across all
+   history, how many distinct days each was taken and the total amount. Only
+   recurring supplements (taken on 2+ days) are shown. */
+function suppLifetimeCard(){
+  if(!suppLog.length)return '';
+  const by={};   // normalized name -> {name, days:Set, units:{unit:{sum,count}}}
+  suppLog.forEach(s=>{
+    const nm=(s.name||'').trim();
+    const key=nm.toLowerCase();
+    if(!key)return;
+    const o=by[key]||(by[key]={name:nm,days:new Set(),units:{}});
+    o.days.add(s.date);
+    const {amount,unit}=suppAmountUnit(s);
+    const amt=parseFloat(amount);
+    if(!isNaN(amt)){
+      const u=(unit||'').trim();
+      const rec=o.units[u]||(o.units[u]={sum:0,count:0});
+      rec.sum+=amt;rec.count++;
+    }
+  });
+  const rows=Object.values(by)
+    .map(o=>{
+      // display the total in the unit logged most often for that supplement
+      let best=null;
+      for(const u in o.units){const r=o.units[u];if(!best||r.count>best.count)best={unit:u,sum:r.sum};}
+      return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:''};
+    })
+    .filter(o=>o.days>1)
+    .sort((a,b)=>b.days-a.days||a.name.localeCompare(b.name));
+  if(!rows.length)return '';
+  const list=rows.map(o=>{
+    const amtStr=o.total!=null?`${fmtVol(o.total)}${o.unit?' '+escapeHtml(o.unit):''}`:'—';
+    return `<div class="lc-row">
+      <div class="lc-name">${escapeHtml(o.name)}</div>
+      <div class="lc-stats">
+        <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">days</div></div>
+        <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="d-card">
+    <div class="d-title">lifetime</div>
+    ${list}
+  </div>`;
+}
 function renderDashboard(){
   const host=document.getElementById('dash');
   const seg=`<div class="seg">
@@ -648,7 +703,7 @@ function renderDashboard(){
   if(inRange.length===0){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
-    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppHeatmapCard();
+    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppHeatmapCard()+suppLifetimeCard();
     bindSeg();return;
   }
 
@@ -691,7 +746,7 @@ function renderDashboard(){
       </div>
     </div>` : '';
 
-  const suppCard = suppHeatmapCard();
+  const suppCard = suppHeatmapCard()+suppLifetimeCard();
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
   host.innerHTML=seg+`
