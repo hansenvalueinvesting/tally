@@ -1,5 +1,5 @@
 /* tally — minimal offline service worker */
-const CACHE = 'tally-v5';
+const CACHE = 'tally-v6';
 const SHELL = [
   './',
   'index.html',

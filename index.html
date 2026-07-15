@@ -824,8 +824,9 @@ function suppRow(s){
   return el;
 }
 
-/* dose helpers: amount + unit are stored separately; `dose` is a composed
-   display string kept for backward-compat with older single-field entries. */
+/* dose helpers: a single free-text dose is entered, then auto-parsed into a
+   numeric `amount` and a `unit`. The raw `dose` string is kept for display and
+   backward-compat with older entries. */
 function composeDose(amount,unit){return [amount,unit].map(x=>x==null?'':String(x).trim()).filter(Boolean).join(' ');}
 function splitDose(dose){
   const m=String(dose||'').trim().match(/^\s*([\d.,]+)\s*(.*)$/);
@@ -836,23 +837,22 @@ function suppAmountUnit(s){
   if(s.amount!=null||s.unit!=null)return{amount:String(s.amount||''),unit:String(s.unit||'')};
   return splitDose(s.dose);   // legacy entry stored only a combined dose
 }
-function doseText(s){const a=suppAmountUnit(s);return composeDose(a.amount,a.unit);}
+/* what to show / put back in the box: the raw dose if we have one, else compose it */
+function doseText(s){
+  if(s.dose!=null&&String(s.dose).trim()!=='')return String(s.dose).trim();
+  const a=suppAmountUnit(s);return composeDose(a.amount,a.unit);
+}
 
 /* Add/edit form for a per-day supplement entry. `existing` null = add new.
    On add, the form stays open with cleared fields so several can be logged in a row. */
 function buildSuppForm(existing,{onCancel,onDone}){
   const f=document.createElement('div');
   f.className='add';
-  const pre=existing?suppAmountUnit(existing):{amount:'',unit:''};
   f.innerHTML=`
     <div class="field"><label>Supplement</label>
       <input class="sf-name" placeholder="e.g. Creatine" autocomplete="off" value="${existing?escapeHtml(existing.name):''}"></div>
-    <div class="row2">
-      <div class="field"><label>Amount</label>
-        <input class="sf-amt" inputmode="decimal" placeholder="e.g. 5" autocomplete="off" value="${escapeHtml(pre.amount)}"></div>
-      <div class="field"><label>Unit</label>
-        <input class="sf-unit" placeholder="e.g. g" autocomplete="off" value="${escapeHtml(pre.unit)}"></div>
-    </div>
+    <div class="field"><label>Dose</label>
+      <input class="sf-dose" placeholder="e.g. 5 g" autocomplete="off" value="${existing?escapeHtml(doseText(existing)):''}"></div>
     <div class="add-actions">
       <button class="btn-save sf-save">${existing?'Update':'Add'}</button>
       <button class="btn-cancel sf-cancel">${existing?'Cancel':'Done'}</button>
@@ -862,15 +862,15 @@ function buildSuppForm(existing,{onCancel,onDone}){
     const nameInput=f.querySelector('.sf-name');
     const name=nameInput.value.trim();
     if(!name){nameInput.focus();return;}
-    const amount=f.querySelector('.sf-amt').value.trim();
-    const unit=f.querySelector('.sf-unit').value.trim();
+    const dose=f.querySelector('.sf-dose').value.trim();
+    const {amount,unit}=splitDose(dose);   // auto-parse the number out of the dose
     const obj={
       id: existing?existing.id:uid(),
       date: existing?existing.date:stackDate,
       name,
       amount,
       unit,
-      dose: composeDose(amount,unit),
+      dose,
       ts: existing?existing.ts:Date.now(),
     };
     await putLog(obj);
