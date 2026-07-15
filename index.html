@@ -481,7 +481,7 @@ document.querySelectorAll('.nav-btn').forEach(b=>{ b.onclick=()=>switchTab(b.dat
 
 function openSession(date){
   currentDate = date;
-  openGroups = new Set(['lower']);   // one open so interaction is obvious
+  openGroups = new Set();   // all categories start collapsed
   editing = new Set();
   formOpen = new Set();
   Object.values(views).forEach(v=>v.classList.remove('active'));
