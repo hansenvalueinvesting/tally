@@ -604,13 +604,19 @@ function suppHeatmapCard(){
   const days=[];
   for(let i=0;i<30;i++){const d=shiftDate(start,i);days.push({date:d,n:counts[d]||0});}
   const total=days.reduce((a,d)=>a+d.n,0);
-  const activeDays=days.filter(d=>d.n>0).length;
+  const activeCounts=days.filter(d=>d.n>0).map(d=>d.n);
+  const activeDays=activeCounts.length;
+  // scale relative to the range of daily counts: split the span from the
+  // least-busy logged day (lo) to the busiest (hi) into quartiles, so lo sits
+  // at l1 and hi at l4. when every logged day has the same count they all read
+  // at full brightness.
+  const lo=activeDays?Math.min(...activeCounts):0;
+  const hi=activeDays?Math.max(...activeCounts):0;
+  const span=hi-lo;
 
   // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
-  // brightness maps to the absolute count that day (1→l1 … 4+→l4), so a steady
-  // routine reads bright and one heavy day can't wash out every other day.
   const cellHtml=days.map(c=>{
-    const lvl=Math.min(4,c.n);
+    const lvl=c.n===0?0:(span===0?4:Math.max(1,Math.ceil((c.n-lo)/span*4)));
     const label=`${fmtDateShort(c.date)} · ${c.n} supplement${c.n!==1?'s':''}`;
     const cls='hc l'+lvl+(c.date===today?' today':'');
     return `<span class="${cls}" title="${label}"></span>`;
