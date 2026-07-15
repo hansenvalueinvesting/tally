@@ -66,7 +66,8 @@
     background:linear-gradient(180deg,var(--bg) 78%,rgba(10,10,10,0));
   }
   .brand{display:flex;align-items:center;gap:11px}
-  .brand h1{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-1px;font-optical-sizing:auto}
+  .brand-logo{height:30px;width:auto;flex-shrink:0;display:block}
+  .brand h1{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-1px;font-optical-sizing:auto;margin-left:-2px}
   .brand .dot{color:var(--accent)}
   .brand small{font-family:var(--mono);color:var(--faint);font-size:10px;letter-spacing:1.5px;text-transform:lowercase}
   .brand .spacer{flex:1}
@@ -266,6 +267,12 @@
 <section class="view active" id="homeView">
   <header>
     <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 46 34" fill="none" aria-hidden="true">
+        <g stroke="#f4f3ee" stroke-width="4.4" stroke-linecap="round">
+          <path d="M7 6V28"/><path d="M17 6V28"/><path d="M27 6V28"/><path d="M37 6V28"/>
+        </g>
+        <path d="M4 30 L42 5" stroke="#ccff33" stroke-width="4.4" stroke-linecap="round"/>
+      </svg>
       <h1>tally<span class="dot">.</span></h1>
       <small>training log</small>
     </div>
