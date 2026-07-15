@@ -106,7 +106,6 @@
   .cstat .n{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
   .cstat.hero .n{color:var(--accent)}
   .cstat .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:8px}
-  .cardio-sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:15px}
   .bars{display:flex;align-items:flex-end;gap:7px}
   .bars .col{flex:1;display:flex;flex-direction:column;align-items:center}
   .bars .bar{width:100%;background:var(--line-strong);border-radius:4px 4px 0 0;min-height:4px}
@@ -549,11 +548,8 @@ function renderDashboard(){
 
   // cardio effort
   const cardio=inRange.filter(e=>e.cat==='cardio');
-  let cardioEff=0,cardioKm=0,cardioMin=0;
-  cardio.forEach(e=>{cardioEff+=cardioEffort(e);const k=parseDistanceKm(e.distance);if(k)cardioKm+=k;const mn=parseMinutes(e.time);if(mn)cardioMin+=mn;});
-  const subBits=[];
-  if(cardioKm)subBits.push((Math.round(cardioKm*10)/10)+' km');
-  if(cardioMin)subBits.push(Math.round(cardioMin)+' min');
+  let cardioEff=0;
+  cardio.forEach(e=>{cardioEff+=cardioEffort(e);});
   const cardioCard = cardio.length ? `
     <div class="d-card">
       <div class="d-title">cardio</div>
@@ -561,7 +557,6 @@ function renderDashboard(){
         <div class="cstat hero"><div class="n">${fmtVol(cardioEff)}</div><div class="l">effort</div></div>
         <div class="cstat"><div class="n">${cardio.length}</div><div class="l">sessions</div></div>
       </div>
-      ${subBits.length?`<div class="cardio-sub">${subBits.join(' · ')} logged</div>`:''}
     </div>` : '';
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
