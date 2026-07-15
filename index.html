@@ -604,13 +604,14 @@ function suppHeatmapCard(){
   const start=shiftDate(today,-29);
   const days=[];
   for(let i=0;i<30;i++){const d=shiftDate(start,i);days.push({date:d,n:counts[d]||0});}
-  const max=Math.max(1,...days.map(d=>d.n));
   const total=days.reduce((a,d)=>a+d.n,0);
   const activeDays=days.filter(d=>d.n>0).length;
 
   // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
+  // brightness maps to the absolute count that day (1→l1 … 4+→l4), so a steady
+  // routine reads bright and one heavy day can't wash out every other day.
   const cellHtml=days.map(c=>{
-    const lvl=c.n===0?0:Math.min(4,Math.ceil(c.n/max*4));
+    const lvl=Math.min(4,c.n);
     const label=`${fmtDateShort(c.date)} · ${c.n} supplement${c.n!==1?'s':''}`;
     const cls='hc l'+lvl+(c.date===today?' today':'');
     return `<span class="${cls}" title="${label}"></span>`;
