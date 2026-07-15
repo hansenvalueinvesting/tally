@@ -644,8 +644,9 @@ function suppHeatmapCard(){
   </div>`;
 }
 /* lifetime counter — groups the log by supplement name and tallies, across all
-   history, how many distinct days each was taken and the total amount. Only
-   recurring supplements (taken on 2+ days) are shown. */
+   history, how many distinct days each was taken and the total amount. Every
+   logged supplement is listed (ranked by days taken) so the counter is visible
+   from the first entry and grows as the same supplement recurs across days. */
 function suppLifetimeCard(){
   if(!suppLog.length)return '';
   const by={};   // normalized name -> {name, days:Set, units:{unit:{sum,count}}}
@@ -670,7 +671,6 @@ function suppLifetimeCard(){
       for(const u in o.units){const r=o.units[u];if(!best||r.count>best.count)best={unit:u,sum:r.sum};}
       return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:''};
     })
-    .filter(o=>o.days>1)
     .sort((a,b)=>b.days-a.days||a.name.localeCompare(b.name));
   if(!rows.length)return '';
   const list=rows.map(o=>{
@@ -678,7 +678,7 @@ function suppLifetimeCard(){
     return `<div class="lc-row">
       <div class="lc-name">${escapeHtml(o.name)}</div>
       <div class="lc-stats">
-        <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">days</div></div>
+        <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">${o.days===1?'day':'days'}</div></div>
         <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
       </div>
     </div>`;
