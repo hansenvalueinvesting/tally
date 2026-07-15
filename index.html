@@ -258,7 +258,7 @@
   .instr ol{margin:0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.75}
   .instr ol b{color:var(--ink);font-weight:600}
 
-  /* ===== STACK (supplements) ===== */
+  /* ===== SUPPLEMENTS (per-day log) ===== */
   #stack{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
   .stack-daynav{display:flex;align-items:center;justify-content:space-between;gap:12px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:14px}
@@ -273,17 +273,10 @@
     margin:0 2px 10px;display:flex;justify-content:space-between}
   .stack-count b{color:var(--accent);font-weight:700}
   .supp{display:flex;align-items:center;gap:13px;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:13px 14px;margin-bottom:8px;transition:border-color .15s}
-  .supp.on{border-color:var(--accent)}
-  .supp-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--line-strong);flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;color:var(--on-accent);background:transparent}
-  .supp.on .supp-check{background:var(--accent);border-color:var(--accent)}
-  .supp-check:active{transform:scale(.92)}
-  .supp-check svg{width:15px;height:15px;display:block}
+    border-radius:12px;padding:13px 14px;margin-bottom:8px}
   .supp-body{flex:1;min-width:0;text-align:left}
-  .supp-name{font-size:15px;font-weight:600;color:var(--dim);word-break:break-word}
-  .supp.on .supp-name{color:var(--ink)}
-  .supp-dose{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:2px}
+  .supp-name{font-size:15px;font-weight:600;color:var(--ink);word-break:break-word}
+  .supp-dose{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:2px}
   .supp .edit{color:var(--faint);padding:3px 4px;display:flex;align-items:center}
   .supp .edit svg{width:15px;height:15px;display:block}
   .supp .edit:active{color:var(--accent)}
@@ -292,6 +285,20 @@
   .stack-empty{text-align:center;color:var(--faint);font-family:var(--mono);font-size:13px;
     padding:40px 24px 28px;line-height:1.8}
   .stack-empty b{color:var(--dim);font-weight:500}
+
+  /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
+  .heat{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:14px}
+  .heat .hc{aspect-ratio:1;border-radius:4px;background:var(--panel-2)}
+  .hc.l0{background:var(--panel-2)}
+  .hc.l1{background:rgba(204,255,51,.28)}
+  .hc.l2{background:rgba(204,255,51,.5)}
+  .hc.l3{background:rgba(204,255,51,.74)}
+  .hc.l4{background:var(--accent)}
+  .heat .hc.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--line-strong)}
+  .heat-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--faint)}
+  .heat-legend{display:flex;align-items:center;gap:4px}
+  .heat-legend .hc{width:11px;height:11px;border-radius:3px}
 
   input[type=file]{display:none}
 </style>
@@ -394,10 +401,10 @@
   </div>
 </section>
 
-<!-- ============ STACK (supplements) ============ -->
+<!-- ============ SUPPLEMENTS (per-day log) ============ -->
 <section class="view" id="stackView">
   <header>
-    <h2 class="page-title">stack</h2>
+    <h2 class="page-title">supplements</h2>
   </header>
   <div id="stack"></div>
 </section>
@@ -414,7 +421,7 @@
   </button>
   <button class="nav-btn" data-tab="stack">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-40 12 12)"><rect x="4.5" y="9" width="15" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></g></svg>
-    <span>stack</span>
+    <span>supps</span>
   </button>
   <button class="nav-btn" data-tab="settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="10" cy="8" r="2.3"/><circle cx="16" cy="16" r="2.3"/></svg>
@@ -439,19 +446,25 @@ const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
 let db;
 function openDB(){
   return new Promise((res,rej)=>{
-    const r = indexedDB.open('split-tracker',2);
+    const r = indexedDB.open('split-tracker',3);
     r.onupgradeneeded = e=>{
       const d = e.target.result;
       if(!d.objectStoreNames.contains('entries')){
         const s = d.createObjectStore('entries',{keyPath:'id'});
         s.createIndex('date','date');
       }
+      // legacy stores (v2 "stack" model) — kept so old data can be migrated
       if(!d.objectStoreNames.contains('supps')){
         d.createObjectStore('supps',{keyPath:'id'});
       }
       if(!d.objectStoreNames.contains('suppTakes')){
         const s2 = d.createObjectStore('suppTakes',{keyPath:'id'});
         s2.createIndex('date','date');
+      }
+      // per-day supplement log: {id,date,name,dose,ts}
+      if(!d.objectStoreNames.contains('suppLog')){
+        const s3 = d.createObjectStore('suppLog',{keyPath:'id'});
+        s3.createIndex('date','date');
       }
     };
     r.onsuccess = e=>{db=e.target.result;res()};
@@ -463,32 +476,28 @@ function putEntry(o){return new Promise((res,rej)=>{const r=tx('readwrite').put(
 function delEntry(id){return new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
 function allEntries(){return new Promise((res,rej)=>{const r=tx('readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
 function sstore(name,mode){return db.transaction(name,mode).objectStore(name);}
-function putSupp(o){return new Promise((res,rej)=>{const r=sstore('supps','readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
-function delSupp(id){return new Promise((res,rej)=>{const r=sstore('supps','readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function putLog(o){return new Promise((res,rej)=>{const r=sstore('suppLog','readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function delLog(id){return new Promise((res,rej)=>{const r=sstore('suppLog','readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function allLog(){return new Promise((res,rej)=>{const r=sstore('suppLog','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
+/* legacy v2 "stack" stores — read-only, used once for migration */
 function allSupps(){return new Promise((res,rej)=>{const r=sstore('supps','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
-function putTake(o){return new Promise((res,rej)=>{const r=sstore('suppTakes','readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
-function delTake(id){return new Promise((res,rej)=>{const r=sstore('suppTakes','readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
 function allTakes(){return new Promise((res,rej)=>{const r=sstore('suppTakes','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
 
 /* ---------- state ---------- */
 let entries = [];
-let supps = [];                   // supplement stack definitions
-let takes = [];                   // daily check-offs: {id,date,suppId,ts}
-let stackDate = null;             // day shown on the stack tab
-let suppEditing = new Set();      // supp ids currently being edited
+let suppLog = [];                 // per-day supplement entries: {id,date,name,dose,ts}
+let stackDate = null;             // day shown on the supplements tab
+let suppEditing = new Set();      // suppLog entry ids currently being edited
 let suppFormOpen = false;         // add-supplement form open
 let currentDate = null;          // active session date (session detail only)
 let openGroups = new Set();
 let formOpen = new Set();
 let editing = new Set();          // entry ids currently being edited
 let activeTab = 'home';
-const CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function shiftDate(base,delta){const dt=new Date(base+'T00:00:00');dt.setDate(dt.getDate()+delta);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
 function daysBetween(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
-function takeId(date,suppId){return date+'|'+suppId;}
-function isTaken(date,suppId){return takes.some(t=>t.date===date&&t.suppId===suppId);}
-function orderedSupps(){return [...supps].sort((a,b)=>(a.order??0)-(b.order??0)||(a.ts||0)-(b.ts||0));}
+function daySupps(date){return suppLog.filter(s=>s.date===date).sort((a,b)=>(a.ts||0)-(b.ts||0));}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function dayEntries(date){return entries.filter(e=>e.date===date);}
 function sessionDates(){return [...new Set(entries.map(e=>e.date))].sort().reverse();}
@@ -556,7 +565,7 @@ function switchTab(tab){
   window.scrollTo(0,0);
   if(tab==='home') renderDashboard();
   else if(tab==='log') renderLog();
-  else if(tab==='stack'){stackDate=todayStr();suppFormOpen=false;suppEditing=new Set();renderStack();}
+  else if(tab==='stack'){stackDate=todayStr();suppFormOpen=false;suppEditing=new Set();renderSupps();}
 }
 document.querySelectorAll('.nav-btn').forEach(b=>{ b.onclick=()=>switchTab(b.dataset.tab); });
 
@@ -582,27 +591,38 @@ function rangeCut(range){
   const c=new Date();c.setDate(c.getDate()-days);
   return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
 }
-function suppAdherenceCard(cut){
-  if(!supps.length)return '';
-  const takesInRange = cut ? takes.filter(t=>t.date>=cut) : takes;
-  let rangeDays;
-  if(dashRange==='7')rangeDays=7;
-  else if(dashRange==='30')rangeDays=30;
-  else{
-    const earliest=takesInRange.reduce((m,t)=>(m===null||t.date<m)?t.date:m,null);
-    rangeDays=earliest?Math.max(1,daysBetween(earliest,todayStr())+1):1;
-  }
-  const rows=orderedSupps().map(s=>{
-    const days=new Set(takesInRange.filter(t=>t.suppId===s.id).map(t=>t.date)).size;
-    const pct=Math.min(100,Math.round(days/rangeDays*100));
-    return `<div class="catrow">
-      <span class="cdot" style="background:var(--accent)"></span>
-      <span class="cname">${escapeHtml(s.name)}</span>
-      <span class="ctrack"><span class="cfill" style="width:${pct}%;background:var(--accent)"></span></span>
-      <span class="cnum">${days}d</span>
-    </div>`;
+/* 30-day supplement heatmap — brighter cell = more supplements logged that day */
+function suppHeatmapCard(){
+  if(!suppLog.length)return '';
+  const today=todayStr();
+  // count per day for the last 30 days
+  const counts={};
+  suppLog.forEach(s=>{counts[s.date]=(counts[s.date]||0)+1;});
+  const start=shiftDate(today,-29);
+  const days=[];
+  for(let i=0;i<30;i++){const d=shiftDate(start,i);days.push({date:d,n:counts[d]||0});}
+  const max=Math.max(1,...days.map(d=>d.n));
+  const total=days.reduce((a,d)=>a+d.n,0);
+  const activeDays=days.filter(d=>d.n>0).length;
+
+  // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
+  const cellHtml=days.map(c=>{
+    const lvl=c.n===0?0:Math.min(4,Math.ceil(c.n/max*4));
+    const label=`${fmtDateShort(c.date)} · ${c.n} supplement${c.n!==1?'s':''}`;
+    const cls='hc l'+lvl+(c.date===today?' today':'');
+    return `<span class="${cls}" title="${label}"></span>`;
   }).join('');
-  return `<div class="d-card"><div class="d-title">supplement adherence</div>${rows}</div>`;
+
+  return `<div class="d-card">
+    <div class="d-title">supplements · last 30 days</div>
+    <div class="heat">${cellHtml}</div>
+    <div class="heat-foot">
+      <span>${total} logged · ${activeDays} day${activeDays!==1?'s':''}</span>
+      <span class="heat-legend">less
+        <span class="hc l0"></span><span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span>
+      more</span>
+    </div>
+  </div>`;
 }
 function renderDashboard(){
   const host=document.getElementById('dash');
@@ -619,7 +639,7 @@ function renderDashboard(){
   if(inRange.length===0){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
-    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppAdherenceCard(cut);
+    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppHeatmapCard();
     bindSeg();return;
   }
 
@@ -662,7 +682,7 @@ function renderDashboard(){
       </div>
     </div>` : '';
 
-  const suppCard = suppAdherenceCard(cut);
+  const suppCard = suppHeatmapCard();
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
   host.innerHTML=seg+`
@@ -722,7 +742,7 @@ function renderLog(){
 /* start session: if today already exists, open it; else create fresh */
 document.getElementById('fab').onclick=()=>openSession(todayStr());
 
-/* ---------- STACK (supplements) rendering ---------- */
+/* ---------- SUPPLEMENTS rendering (per-day log) ---------- */
 function relDayLabel(d){
   if(d===todayStr())return 'today';
   if(d===shiftDate(todayStr(),-1))return 'yesterday';
@@ -731,7 +751,7 @@ function relDayLabel(d){
 function fmtDateShort(d){
   return new Date(d+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
 }
-function renderStack(){
+function renderSupps(){
   if(!stackDate)stackDate=todayStr();
   const host=document.getElementById('stack');
   host.innerHTML='';
@@ -747,21 +767,20 @@ function renderStack(){
   nav.querySelectorAll('.sd-arrow').forEach(b=>b.onclick=()=>{
     const nd=shiftDate(stackDate,parseInt(b.dataset.d,10));
     if(nd>todayStr())return;
-    stackDate=nd;suppEditing=new Set();renderStack();
+    stackDate=nd;suppEditing=new Set();suppFormOpen=false;renderSupps();
   });
   host.appendChild(nav);
 
-  const list=orderedSupps();
-  if(list.length===0){
+  const list=daySupps(stackDate);
+  if(list.length===0 && !suppFormOpen){
     const empty=document.createElement('div');
     empty.className='stack-empty';
-    empty.innerHTML='no supplements yet.<br><b>add your stack below to start tracking.</b>';
+    empty.innerHTML=`nothing logged ${isToday?'today':'this day'}.<br><b>log what you took below.</b>`;
     host.appendChild(empty);
-  }else{
-    const taken=list.filter(s=>isTaken(stackDate,s.id)).length;
+  }else if(list.length){
     const count=document.createElement('div');
     count.className='stack-count';
-    count.innerHTML=`<span>${isToday?'taken today':'taken this day'}</span><span><b>${taken}</b> / ${list.length}</span>`;
+    count.innerHTML=`<span>logged ${isToday?'today':'this day'}</span><span><b>${list.length}</b> supplement${list.length!==1?'s':''}</span>`;
     host.appendChild(count);
     list.forEach(s=>host.appendChild(suppRow(s)));
   }
@@ -772,53 +791,33 @@ function renderStack(){
 function suppRow(s){
   if(suppEditing.has(s.id)){
     return buildSuppForm(s,{
-      onCancel:()=>{suppEditing.delete(s.id);renderStack();},
-      onDone:()=>{suppEditing.delete(s.id);renderStack();},
+      onCancel:()=>{suppEditing.delete(s.id);renderSupps();},
+      onDone:()=>{suppEditing.delete(s.id);renderSupps();},
     });
   }
-  const taken=isTaken(stackDate,s.id);
   const el=document.createElement('div');
-  el.className='supp'+(taken?' on':'');
+  el.className='supp';
   el.innerHTML=`
-    <button class="supp-check" aria-label="${taken?'mark not taken':'mark taken'}">${taken?CHECK_SVG:''}</button>
-    <button class="supp-body">
+    <div class="supp-body">
       <div class="supp-name">${escapeHtml(s.name)}</div>
       ${s.dose?`<div class="supp-dose">${escapeHtml(s.dose)}</div>`:''}
-    </button>
+    </div>
     <div class="eactions">
       <button class="edit" aria-label="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg></button>
       <button class="del" aria-label="delete">×</button>
     </div>`;
-  const toggle=async()=>{await toggleTake(stackDate,s.id);renderStack();};
-  el.querySelector('.supp-check').onclick=toggle;
-  el.querySelector('.supp-body').onclick=toggle;
-  el.querySelector('.edit').onclick=()=>{suppEditing.add(s.id);renderStack();};
+  el.querySelector('.edit').onclick=()=>{suppEditing.add(s.id);renderSupps();};
   el.querySelector('.del').onclick=async()=>{
-    if(!confirm('Remove '+s.name+' from your stack? This also clears its history.'))return;
-    await delSupp(s.id);
-    supps=supps.filter(x=>x.id!==s.id);
-    const gone=takes.filter(t=>t.suppId===s.id);
-    for(const t of gone)await delTake(t.id);
-    takes=takes.filter(t=>t.suppId!==s.id);
+    await delLog(s.id);
+    suppLog=suppLog.filter(x=>x.id!==s.id);
     suppEditing.delete(s.id);
-    renderStack();
+    renderSupps();
   };
   return el;
 }
 
-async function toggleTake(date,suppId){
-  const id=takeId(date,suppId);
-  if(isTaken(date,suppId)){
-    await delTake(id);
-    takes=takes.filter(t=>t.id!==id);
-  }else{
-    const o={id,date,suppId,ts:Date.now()};
-    await putTake(o);
-    takes.push(o);
-  }
-}
-
-/* Shared add/edit form for a supplement. `existing` null = add new. */
+/* Add/edit form for a per-day supplement entry. `existing` null = add new.
+   On add, the form stays open with cleared fields so several can be logged in a row. */
 function buildSuppForm(existing,{onCancel,onDone}){
   const f=document.createElement('div');
   f.className='add';
@@ -829,24 +828,27 @@ function buildSuppForm(existing,{onCancel,onDone}){
       <input class="sf-dose" placeholder="e.g. 5 g" autocomplete="off" value="${existing?escapeHtml(existing.dose||''):''}"></div>
     <div class="add-actions">
       <button class="btn-save sf-save">${existing?'Update':'Add'}</button>
-      <button class="btn-cancel sf-cancel">Cancel</button>
+      <button class="btn-cancel sf-cancel">${existing?'Cancel':'Done'}</button>
     </div>`;
   f.querySelector('.sf-cancel').onclick=()=>onCancel&&onCancel();
   f.querySelector('.sf-save').onclick=async()=>{
     const nameInput=f.querySelector('.sf-name');
+    const doseInput=f.querySelector('.sf-dose');
     const name=nameInput.value.trim();
     if(!name){nameInput.focus();return;}
     const obj={
       id: existing?existing.id:uid(),
+      date: existing?existing.date:stackDate,
       name,
-      dose: f.querySelector('.sf-dose').value.trim(),
+      dose: doseInput.value.trim(),
       ts: existing?existing.ts:Date.now(),
-      order: existing?(existing.order??0):supps.length,
     };
-    await putSupp(obj);
-    if(existing){const i=supps.findIndex(x=>x.id===obj.id);if(i>=0)supps[i]=obj;else supps.push(obj);}
-    else supps.push(obj);
-    onDone&&onDone();
+    await putLog(obj);
+    if(existing){const i=suppLog.findIndex(x=>x.id===obj.id);if(i>=0)suppLog[i]=obj;else suppLog.push(obj);}
+    else suppLog.push(obj);
+    if(existing){onDone&&onDone();return;}
+    // adding: keep the form open, clear it, and re-render the list above
+    renderSupps();
   };
   return f;
 }
@@ -856,15 +858,17 @@ function suppAddBlock(){
   if(!suppFormOpen){
     const t=document.createElement('button');
     t.className='add-trigger';
-    t.textContent='+ add supplement';
-    t.onclick=()=>{suppFormOpen=true;renderStack();};
+    t.textContent='+ log supplement';
+    t.onclick=()=>{suppFormOpen=true;renderSupps();};
     wrap.appendChild(t);
     return wrap;
   }
-  wrap.appendChild(buildSuppForm(null,{
-    onCancel:()=>{suppFormOpen=false;renderStack();},
-    onDone:()=>{suppFormOpen=false;renderStack();},
-  }));
+  const form=buildSuppForm(null,{
+    onCancel:()=>{suppFormOpen=false;renderSupps();},
+  });
+  wrap.appendChild(form);
+  // focus the name field so logging several in a row stays keyboard-friendly
+  setTimeout(()=>{const n=form.querySelector('.sf-name');if(n)n.focus();},0);
   return wrap;
 }
 
@@ -1063,7 +1067,7 @@ sDatePick.onchange=async()=>{
 
 /* ---------- export / import ---------- */
 document.getElementById('exportBtn').onclick=()=>{
-  const payload={app:'tally',version:2,exportedAt:new Date().toISOString(),count:entries.length,entries,supps,suppTakes:takes};
+  const payload={app:'tally',version:3,exportedAt:new Date().toISOString(),count:entries.length,entries,suppLog};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1098,25 +1102,33 @@ importFile.onchange=()=>{
     }
     entries=[...existing.values()];
 
-    // supplements (stack definitions + daily check-offs), if present
+    // supplement log (per-day entries), if present
     let suppsAdded=0;
-    if(Array.isArray(data.supps)){
-      for(const raw of data.supps){
-        if(!raw||typeof raw!=='object'||!raw.id||!raw.name)continue;
-        await putSupp({id:String(raw.id),name:String(raw.name),dose:String(raw.dose||''),
-          ts:raw.ts||Date.now(),order:raw.order??0});
-        suppsAdded++;
+    const suppMap=new Map(suppLog.map(s=>[s.id,s]));
+    if(Array.isArray(data.suppLog)){
+      for(const raw of data.suppLog){
+        if(!raw||typeof raw!=='object'||!raw.id||!raw.date||!raw.name)continue;
+        const clean={id:String(raw.id),date:String(raw.date),name:String(raw.name),
+          dose:String(raw.dose||''),ts:raw.ts||Date.now()};
+        if(!suppMap.has(clean.id))suppsAdded++;
+        suppMap.set(clean.id,clean);
+        await putLog(clean);
       }
     }
-    if(Array.isArray(data.suppTakes)){
+    // backward-compat: fold an older v2 backup (supps + suppTakes) into the log
+    if(Array.isArray(data.suppTakes)&&Array.isArray(data.supps)){
+      const defs=Object.fromEntries(data.supps.filter(x=>x&&x.id).map(x=>[String(x.id),x]));
       for(const raw of data.suppTakes){
         if(!raw||typeof raw!=='object'||!raw.date||!raw.suppId)continue;
-        const id=raw.id?String(raw.id):takeId(String(raw.date),String(raw.suppId));
-        await putTake({id,date:String(raw.date),suppId:String(raw.suppId),ts:raw.ts||Date.now()});
+        const def=defs[String(raw.suppId)];if(!def)continue;
+        const id=raw.id?String(raw.id):(String(raw.date)+'|'+String(raw.suppId));
+        if(suppMap.has(id))continue;
+        const clean={id,date:String(raw.date),name:String(def.name||''),dose:String(def.dose||''),ts:raw.ts||Date.now()};
+        suppMap.set(id,clean);suppsAdded++;
+        await putLog(clean);
       }
     }
-    supps=await allSupps();
-    takes=await allTakes();
+    suppLog=[...suppMap.values()];
 
     importFile.value='';
     renderLog();renderDashboard();
@@ -1154,8 +1166,21 @@ function fmtDate(d){
 (async function(){
   await openDB();
   entries=await allEntries();
-  supps=await allSupps();
-  takes=await allTakes();
+  suppLog=await allLog();
+  // one-time migration of legacy v2 "stack" data into the per-day log
+  if(suppLog.length===0){
+    try{
+      const [oldSupps,oldTakes]=await Promise.all([allSupps(),allTakes()]);
+      if(oldTakes.length){
+        const byId=Object.fromEntries(oldSupps.map(s=>[s.id,s]));
+        for(const t of oldTakes){
+          const def=byId[t.suppId];if(!def)continue;
+          await putLog({id:t.id||uid(),date:t.date,name:def.name,dose:def.dose||'',ts:t.ts||Date.now()});
+        }
+        suppLog=await allLog();
+      }
+    }catch(e){/* legacy stores absent — nothing to migrate */}
+  }
   stackDate=todayStr();
   switchTab('home');
 })();
