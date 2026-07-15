@@ -804,10 +804,11 @@ function suppRow(s){
   }
   const el=document.createElement('div');
   el.className='supp';
+  const dose=doseText(s);
   el.innerHTML=`
     <div class="supp-body">
       <div class="supp-name">${escapeHtml(s.name)}</div>
-      ${s.dose?`<div class="supp-dose">${escapeHtml(s.dose)}</div>`:''}
+      ${dose?`<div class="supp-dose">${escapeHtml(dose)}</div>`:''}
     </div>
     <div class="eactions">
       <button class="edit" aria-label="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg></button>
@@ -823,16 +824,35 @@ function suppRow(s){
   return el;
 }
 
+/* dose helpers: amount + unit are stored separately; `dose` is a composed
+   display string kept for backward-compat with older single-field entries. */
+function composeDose(amount,unit){return [amount,unit].map(x=>x==null?'':String(x).trim()).filter(Boolean).join(' ');}
+function splitDose(dose){
+  const m=String(dose||'').trim().match(/^\s*([\d.,]+)\s*(.*)$/);
+  if(m&&m[1])return{amount:m[1].replace(/,/g,''),unit:m[2].trim()};
+  return{amount:'',unit:String(dose||'').trim()};
+}
+function suppAmountUnit(s){
+  if(s.amount!=null||s.unit!=null)return{amount:String(s.amount||''),unit:String(s.unit||'')};
+  return splitDose(s.dose);   // legacy entry stored only a combined dose
+}
+function doseText(s){const a=suppAmountUnit(s);return composeDose(a.amount,a.unit);}
+
 /* Add/edit form for a per-day supplement entry. `existing` null = add new.
    On add, the form stays open with cleared fields so several can be logged in a row. */
 function buildSuppForm(existing,{onCancel,onDone}){
   const f=document.createElement('div');
   f.className='add';
+  const pre=existing?suppAmountUnit(existing):{amount:'',unit:''};
   f.innerHTML=`
     <div class="field"><label>Supplement</label>
       <input class="sf-name" placeholder="e.g. Creatine" autocomplete="off" value="${existing?escapeHtml(existing.name):''}"></div>
-    <div class="field"><label>Dose</label>
-      <input class="sf-dose" placeholder="e.g. 5 g" autocomplete="off" value="${existing?escapeHtml(existing.dose||''):''}"></div>
+    <div class="row2">
+      <div class="field"><label>Amount</label>
+        <input class="sf-amt" inputmode="decimal" placeholder="e.g. 5" autocomplete="off" value="${escapeHtml(pre.amount)}"></div>
+      <div class="field"><label>Unit</label>
+        <input class="sf-unit" placeholder="e.g. g" autocomplete="off" value="${escapeHtml(pre.unit)}"></div>
+    </div>
     <div class="add-actions">
       <button class="btn-save sf-save">${existing?'Update':'Add'}</button>
       <button class="btn-cancel sf-cancel">${existing?'Cancel':'Done'}</button>
@@ -840,14 +860,17 @@ function buildSuppForm(existing,{onCancel,onDone}){
   f.querySelector('.sf-cancel').onclick=()=>onCancel&&onCancel();
   f.querySelector('.sf-save').onclick=async()=>{
     const nameInput=f.querySelector('.sf-name');
-    const doseInput=f.querySelector('.sf-dose');
     const name=nameInput.value.trim();
     if(!name){nameInput.focus();return;}
+    const amount=f.querySelector('.sf-amt').value.trim();
+    const unit=f.querySelector('.sf-unit').value.trim();
     const obj={
       id: existing?existing.id:uid(),
       date: existing?existing.date:stackDate,
       name,
-      dose: doseInput.value.trim(),
+      amount,
+      unit,
+      dose: composeDose(amount,unit),
       ts: existing?existing.ts:Date.now(),
     };
     await putLog(obj);
@@ -1115,8 +1138,13 @@ importFile.onchange=()=>{
     if(Array.isArray(data.suppLog)){
       for(const raw of data.suppLog){
         if(!raw||typeof raw!=='object'||!raw.id||!raw.date||!raw.name)continue;
-        const clean={id:String(raw.id),date:String(raw.date),name:String(raw.name),
-          dose:String(raw.dose||''),ts:raw.ts||Date.now()};
+        const amount=raw.amount!=null?String(raw.amount):undefined;
+        const unit=raw.unit!=null?String(raw.unit):undefined;
+        let dose=raw.dose!=null?String(raw.dose):'';
+        if(!dose&&(amount||unit))dose=composeDose(amount,unit);
+        const clean={id:String(raw.id),date:String(raw.date),name:String(raw.name),dose,ts:raw.ts||Date.now()};
+        if(amount!=null)clean.amount=amount;
+        if(unit!=null)clean.unit=unit;
         if(!suppMap.has(clean.id))suppsAdded++;
         suppMap.set(clean.id,clean);
         await putLog(clean);
@@ -1130,7 +1158,8 @@ importFile.onchange=()=>{
         const def=defs[String(raw.suppId)];if(!def)continue;
         const id=raw.id?String(raw.id):(String(raw.date)+'|'+String(raw.suppId));
         if(suppMap.has(id))continue;
-        const clean={id,date:String(raw.date),name:String(def.name||''),dose:String(def.dose||''),ts:raw.ts||Date.now()};
+        const sd=splitDose(def.dose||'');
+        const clean={id,date:String(raw.date),name:String(def.name||''),dose:String(def.dose||''),amount:sd.amount,unit:sd.unit,ts:raw.ts||Date.now()};
         suppMap.set(id,clean);suppsAdded++;
         await putLog(clean);
       }
@@ -1182,7 +1211,8 @@ function fmtDate(d){
         const byId=Object.fromEntries(oldSupps.map(s=>[s.id,s]));
         for(const t of oldTakes){
           const def=byId[t.suppId];if(!def)continue;
-          await putLog({id:t.id||uid(),date:t.date,name:def.name,dose:def.dose||'',ts:t.ts||Date.now()});
+          const sd=splitDose(def.dose||'');
+          await putLog({id:t.id||uid(),date:t.date,name:def.name,dose:def.dose||'',amount:sd.amount,unit:sd.unit,ts:t.ts||Date.now()});
         }
         suppLog=await allLog();
       }
