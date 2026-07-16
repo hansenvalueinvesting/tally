@@ -678,7 +678,7 @@ function recordsCard(){
       ${g.items.map(r=>`
         <div class="rec-row">
           <span class="rec-name">${escapeHtml(r.name)}</span>
-          <span class="rec-val">${fmtVol(r.weight)}<span class="rec-u"> lb</span></span>
+          <span class="rec-val">${String(r.weight)}<span class="rec-u"> lb</span></span>
           <span class="rec-date">${fmtRecDate(r.date)}</span>
         </div>`).join('')}
     </div>`).join('');
