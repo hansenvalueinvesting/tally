@@ -288,8 +288,8 @@
   .stack-empty b{color:var(--dim);font-weight:500}
 
   /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
-  .heat{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:14px}
-  .heat .hc{aspect-ratio:1;border-radius:4px;background:var(--panel-2)}
+  .heat{position:relative;display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:14px}
+  .heat .hc{aspect-ratio:1;border-radius:4px;background:var(--panel-2);cursor:pointer}
   .hc.l0{background:var(--panel-2)}
   .hc.l1{background:rgba(204,255,51,.28)}
   .hc.l2{background:rgba(204,255,51,.5)}
@@ -299,7 +299,20 @@
   .heat-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
     font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--faint)}
   .heat-legend{display:flex;align-items:center;gap:4px}
-  .heat-legend .hc{width:11px;height:11px;border-radius:3px}
+  .heat-legend .hc{width:11px;height:11px;border-radius:3px;cursor:default}
+  /* per-day breakdown popover (hover on desktop, tap on mobile) */
+  .heat-pop{position:absolute;z-index:20;min-width:148px;max-width:220px;pointer-events:none;
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:10px;
+    padding:9px 11px;box-shadow:0 8px 22px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+  .heat-pop.show{opacity:1;transform:translateY(0)}
+  .heat-pop .hp-date{font-family:var(--mono);font-size:10px;letter-spacing:.5px;
+    color:var(--faint);margin-bottom:7px}
+  .heat-pop .hp-item{display:flex;justify-content:space-between;gap:12px;
+    font-size:12px;line-height:1.5}
+  .heat-pop .hp-name{color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .heat-pop .hp-dose{font-family:var(--mono);color:var(--dim);white-space:nowrap;flex-shrink:0}
+  .heat-pop .hp-empty{font-family:var(--mono);font-size:11px;color:var(--faint)}
 
   /* lifetime supplement counter (dashboard) — days taken + total amount */
   .lc-row{display:flex;align-items:center;gap:12px;margin-bottom:15px}
@@ -635,10 +648,8 @@ function suppHeatmapCard(){
   // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
   const cellHtml=days.map(c=>{
     const lvl=c.amt>0?Math.min(4,Math.ceil(c.amt/maxAmt*4)):(c.cnt>0?1:0);
-    const val=c.amt>0?`${fmtVol(c.amt)}${c.unit?' '+c.unit:''}`:`${c.cnt} supplement${c.cnt!==1?'s':''}`;
-    const label=`${fmtDateShort(c.date)} · ${val}`;
     const cls='hc l'+lvl+(c.date===today?' today':'');
-    return `<span class="${cls}" title="${label}"></span>`;
+    return `<span class="${cls}" data-date="${c.date}"></span>`;
   }).join('');
 
   return `<div class="d-card">
@@ -651,6 +662,51 @@ function suppHeatmapCard(){
       more</span>
     </div>
   </div>`;
+}
+/* wire up the heatmap's per-day breakdown popover: hover shows it on desktop,
+   tap toggles (pins) it on mobile; tapping elsewhere or another cell dismisses. */
+let heatHide=null;
+function bindHeatmap(){
+  const heat=document.querySelector('.heat');
+  if(!heat)return;
+  const pop=document.createElement('div');
+  pop.className='heat-pop';
+  heat.appendChild(pop);
+  let pinned=null;
+  const fill=date=>{
+    const list=daySupps(date);
+    const head=`<div class="hp-date">${fmtDateShort(date)}</div>`;
+    if(!list.length){pop.innerHTML=head+`<div class="hp-empty">nothing logged</div>`;return;}
+    pop.innerHTML=head+list.map(s=>{
+      const d=doseText(s);
+      return `<div class="hp-item"><span class="hp-name">${escapeHtml(s.name)}</span>${d?`<span class="hp-dose">${escapeHtml(d)}</span>`:''}</div>`;
+    }).join('');
+  };
+  const showFor=cell=>{
+    fill(cell.dataset.date);
+    pop.classList.add('show');
+    const pw=pop.offsetWidth,ph=pop.offsetHeight;
+    const cx=cell.offsetLeft+cell.offsetWidth/2;
+    let left=Math.max(0,Math.min(cx-pw/2,heat.clientWidth-pw));
+    let top=cell.offsetTop-ph-6;
+    if(top<0)top=cell.offsetTop+cell.offsetHeight+6;
+    pop.style.left=left+'px';pop.style.top=top+'px';
+  };
+  const hide=()=>{pop.classList.remove('show');pinned=null;};
+  heatHide=hide;
+  heat.querySelectorAll('.hc').forEach(cell=>{
+    cell.addEventListener('mouseenter',()=>{if(!pinned)showFor(cell);});
+    cell.addEventListener('mouseleave',()=>{if(!pinned)hide();});
+    cell.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(pinned===cell){hide();return;}
+      pinned=cell;showFor(cell);
+    });
+  });
+  if(!window.__heatDocBound){
+    window.__heatDocBound=true;
+    document.addEventListener('click',()=>{heatHide&&heatHide();});
+  }
 }
 /* lifetime counter — groups the log by supplement name and tallies, across all
    history, how many distinct days each was taken and the total amount. Every
@@ -713,7 +769,7 @@ function renderDashboard(){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
     host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppHeatmapCard()+suppLifetimeCard();
-    bindSeg();return;
+    bindSeg();bindHeatmap();return;
   }
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
@@ -775,7 +831,7 @@ function renderDashboard(){
       ${catRows}
     </div>
     ${suppCard}`;
-  bindSeg();
+  bindSeg();bindHeatmap();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
