@@ -603,31 +603,40 @@ function rangeCut(range){
   const c=new Date();c.setDate(c.getDate()-days);
   return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
 }
-/* 30-day supplement heatmap — brighter cell = more supplements logged that day */
+/* 30-day supplement heatmap — brighter cell = more total supplement logged
+   that day. Shade is a quartile of the amount taken, from 0 to the busiest
+   day's amount (with a max of 20: 1-5→l1, 6-10→l2, 11-15→l3, 16-20→l4). */
 function suppHeatmapCard(){
   if(!suppLog.length)return '';
   const today=todayStr();
-  // count per day for the last 30 days
-  const counts={};
-  suppLog.forEach(s=>{counts[s.date]=(counts[s.date]||0)+1;});
+  // aggregate per day: total amount, entry count, and the unit used most
+  const byDay={};
+  suppLog.forEach(s=>{
+    const rec=byDay[s.date]||(byDay[s.date]={amt:0,cnt:0,units:{}});
+    rec.cnt++;
+    const {amount,unit}=suppAmountUnit(s);
+    const a=parseFloat(amount);
+    if(!isNaN(a)){rec.amt+=a;const u=(unit||'').trim();rec.units[u]=(rec.units[u]||0)+1;}
+  });
   const start=shiftDate(today,-29);
   const days=[];
-  for(let i=0;i<30;i++){const d=shiftDate(start,i);days.push({date:d,n:counts[d]||0});}
-  const total=days.reduce((a,d)=>a+d.n,0);
-  const activeCounts=days.filter(d=>d.n>0).map(d=>d.n);
-  const activeDays=activeCounts.length;
-  // scale relative to the range of daily counts: split the span from the
-  // least-busy logged day (lo) to the busiest (hi) into quartiles, so lo sits
-  // at l1 and hi at l4. when every logged day has the same count they all read
-  // at full brightness.
-  const lo=activeDays?Math.min(...activeCounts):0;
-  const hi=activeDays?Math.max(...activeCounts):0;
-  const span=hi-lo;
+  for(let i=0;i<30;i++){
+    const d=shiftDate(start,i);
+    const rec=byDay[d]||{amt:0,cnt:0,units:{}};
+    let unit='',best=-1;
+    for(const u in rec.units){if(rec.units[u]>best){best=rec.units[u];unit=u;}}
+    days.push({date:d,amt:rec.amt,cnt:rec.cnt,unit});
+  }
+  const total=days.reduce((a,d)=>a+d.cnt,0);
+  const activeDays=days.filter(d=>d.cnt>0).length;
+  // colour by the day's total amount, split into quartiles of 0→busiest day.
+  const maxAmt=Math.max(0,...days.map(d=>d.amt));
 
   // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
   const cellHtml=days.map(c=>{
-    const lvl=c.n===0?0:(span===0?4:Math.max(1,Math.ceil((c.n-lo)/span*4)));
-    const label=`${fmtDateShort(c.date)} · ${c.n} supplement${c.n!==1?'s':''}`;
+    const lvl=c.amt>0?Math.min(4,Math.ceil(c.amt/maxAmt*4)):(c.cnt>0?1:0);
+    const val=c.amt>0?`${fmtVol(c.amt)}${c.unit?' '+c.unit:''}`:`${c.cnt} supplement${c.cnt!==1?'s':''}`;
+    const label=`${fmtDateShort(c.date)} · ${val}`;
     const cls='hc l'+lvl+(c.date===today?' today':'');
     return `<span class="${cls}" title="${label}"></span>`;
   }).join('');
