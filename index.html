@@ -251,6 +251,10 @@
   .set-item .chev{color:var(--faint);font-family:var(--mono);flex-shrink:0}
   .set-item.install{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
     font-weight:700;justify-content:center;box-shadow:0 4px 18px rgba(204,255,51,.22)}
+  .set-item.danger{color:var(--rose);border-color:rgba(255,90,90,.35)}
+  .set-item.danger .si-desc{color:rgba(255,90,90,.6)}
+  .set-item.danger .chev{color:var(--rose)}
+  .set-item.danger:active{background:rgba(255,90,90,.08)}
   .set-note{color:var(--faint);font-family:var(--mono);font-size:11px;line-height:1.7;padding:2px;margin:8px 0 0}
   .instr{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
   .instr .plat{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin:0 0 7px}
@@ -416,6 +420,10 @@
       </button>
       <input type="file" id="importFile" accept="application/json,.json">
       <p class="set-note">everything is stored locally on this device. export regularly to keep a backup.</p>
+      <button class="set-item danger" id="resetBtn">
+        <div><div>reset data</div><div class="si-desc">permanently erase all sessions &amp; supplements</div></div>
+        <span class="chev">⨯</span>
+      </button>
     </div>
 
     <div class="set-sec">
@@ -1365,6 +1373,26 @@ importFile.onchange=()=>{
     alert(`Import complete — ${added} added, ${updated} updated${suppNote}.`);
   };
   reader.readAsText(file);
+};
+
+/* ---------- reset (erase all local data) ---------- */
+function clearStore(name){return new Promise((res,rej)=>{
+  if(!db.objectStoreNames.contains(name))return res();
+  const r=db.transaction(name,'readwrite').objectStore(name).clear();
+  r.onsuccess=res;r.onerror=e=>rej(e.target.error);
+});}
+document.getElementById('resetBtn').onclick=async()=>{
+  if(!confirm('Erase ALL data on this device? This deletes every session and supplement entry and cannot be undone.'))return;
+  if(!confirm('Are you sure? Consider exporting a backup first. This is permanent.'))return;
+  try{
+    await Promise.all(['entries','suppLog','supps','suppTakes'].map(clearStore));
+  }catch(e){alert('Could not clear all data — please try again.');return;}
+  entries=[];suppLog=[];
+  stackDate=todayStr();suppEditing=new Set();suppFormOpen=false;
+  editing=new Set();openGroups=new Set();formOpen=new Set();
+  renderLog();renderDashboard();
+  switchTab('home');
+  alert('All data has been reset.');
 };
 
 /* ---------- install to home screen ---------- */
