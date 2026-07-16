@@ -558,11 +558,13 @@ function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets
 function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='cardio')e+=cardioEffort(it);});return e;}
 
 /* ---------- cardio effort ---------- */
-/* Baked-in weights. time = 1 point/min (an honest cross-activity effort unit),
-   distance = 6 points/km (anchored to a moderate ~6 min/km run so distance and
+/* Baked-in weights. time = 100 points/min (an honest cross-activity effort unit),
+   distance = 600 points/km (anchored to a moderate ~6 min/km run so distance and
    time weigh about equally for a typical run; longer rides still add distance
-   credit, tempered by averaging the two when both are logged). */
-const EFFORT={dist:6,time:1};
+   credit, tempered by averaging the two when both are logged). Both are scaled
+   up by 100 so effort lands in a comparable range to volume, since the two share
+   a chart. */
+const EFFORT={dist:600,time:100};
 /* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
 function parseDistanceKm(str){
   if(!str)return null;
