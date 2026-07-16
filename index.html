@@ -510,7 +510,7 @@
 
         <h4>cardio — your conditioning work</h4>
         <p>a distance is read as kilometres (miles are converted, ×1.609); a time is read as minutes, and it accepts plain <b>45</b>, <b>28 min</b>, <b>1 h</b>, or <b>1:05:00</b>. from those, your cardio score is:</p>
-        <p class="f">cardio = km × 600 + min × 100</p>
+        <p class="f">cardio = km × 1800 + min × 300</p>
         <p>if you log <b>both</b> distance and time, the two halves are averaged; if you log only one, that one stands alone. the weights are tuned so distance and time count about equally for a moderate ~6&nbsp;min/km run, and scaled up so cardio lands in the same range as volume. it's always drawn in <span style="color:var(--c-cardio)">blue</span>.</p>
 
         <h4>the log tab</h4>
@@ -641,13 +641,13 @@ function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets
 function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='cardio')e+=cardioEffort(it);});return e;}
 
 /* ---------- cardio effort ---------- */
-/* Baked-in weights. time = 100 points/min (an honest cross-activity effort unit),
-   distance = 600 points/km (anchored to a moderate ~6 min/km run so distance and
+/* Baked-in weights. time = 300 points/min (an honest cross-activity effort unit),
+   distance = 1800 points/km (anchored to a moderate ~6 min/km run so distance and
    time weigh about equally for a typical run; longer rides still add distance
-   credit, tempered by averaging the two when both are logged). Both are scaled
-   up by 100 so effort lands in a comparable range to volume, since the two share
-   a chart. */
-const EFFORT={dist:600,time:100};
+   credit, tempered by averaging the two when both are logged). Scaled so a typical
+   ~45-min cardio session lands around a solid lifting session's volume (~10-20k),
+   since the two share a chart. */
+const EFFORT={dist:1800,time:300};
 /* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
 function parseDistanceKm(str){
   if(!str)return null;
