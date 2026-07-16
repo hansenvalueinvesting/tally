@@ -357,14 +357,18 @@
   .heat-pop .hp-empty{font-family:var(--mono);font-size:11px;color:var(--faint)}
 
   /* lifetime supplement counter (dashboard) — days taken + total amount */
-  .lc-row{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+  .lc-row{margin-bottom:16px}
   .lc-row:last-child{margin-bottom:0}
+  .lc-top{display:flex;align-items:center;gap:12px}
   .lc-name{font-size:14px;font-weight:600;color:var(--ink);flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lc-stats{display:flex;gap:18px;flex-shrink:0}
   .lc-stat{font-family:var(--mono);text-align:right}
   .lc-stat .lc-n{font-size:15px;font-weight:700;color:var(--accent);line-height:1}
   .lc-stat .lc-l{font-size:8.5px;text-transform:lowercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .lc-spark{display:flex;align-items:flex-end;gap:1px;height:22px;margin-top:9px}
+  .lc-spark .sp{flex:1;min-width:0;min-height:1.5px;background:var(--line-strong);border-radius:1px}
+  .lc-spark .sp.on{background:var(--accent)}
 
   input[type=file]{display:none}
 </style>
@@ -856,33 +860,50 @@ function suppLifetimeCard(){
     const nm=(s.name||'').trim();
     const key=nm.toLowerCase();
     if(!key)return;
-    const o=by[key]||(by[key]={name:nm,days:new Set(),units:{}});
+    const o=by[key]||(by[key]={name:nm,days:new Set(),units:{},byDate:{}});
     o.days.add(s.date);
     const {amount,unit}=suppAmountUnit(s);
     const amt=parseFloat(amount);
+    const day=o.byDate[s.date]||(o.byDate[s.date]={amt:0,cnt:0});
+    day.cnt++;
     if(!isNaN(amt)){
       const u=(unit||'').trim();
       const rec=o.units[u]||(o.units[u]={sum:0,count:0});
       rec.sum+=amt;rec.count++;
+      day.amt+=amt;
     }
   });
+  // 90-day sparkline: daily consumption oldest→today, empty days included. Uses
+  // the logged amount where present, else falls back to entry count so a
+  // supplement logged without a numeric dose still charts by frequency.
+  const sparkStart=shiftDate(todayStr(),-89);
+  const sparkFor=o=>{
+    const days=[];let hasAmt=false;
+    for(let i=0;i<90;i++){const d=shiftDate(sparkStart,i);const r=o.byDate[d];if(r&&r.amt>0)hasAmt=true;days.push(r||{amt:0,cnt:0});}
+    const vals=days.map(r=>hasAmt?r.amt:r.cnt);
+    const mx=Math.max(0,...vals);
+    return vals.map(v=>`<span class="sp${v>0?' on':''}" style="height:${mx>0&&v>0?Math.max(12,Math.round(v/mx*100)):0}%"></span>`).join('');
+  };
   const rows=Object.values(by)
     .map(o=>{
       // display the total in the unit logged most often for that supplement
       let best=null;
       for(const u in o.units){const r=o.units[u];if(!best||r.count>best.count)best={unit:u,sum:r.sum};}
-      return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:''};
+      return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:'',spark:sparkFor(o)};
     })
     .sort((a,b)=>b.days-a.days||a.name.localeCompare(b.name));
   if(!rows.length)return '';
   const list=rows.map(o=>{
     const amtStr=o.total!=null?`${fmtVol(o.total)}${o.unit?' '+escapeHtml(o.unit):''}`:'—';
     return `<div class="lc-row">
-      <div class="lc-name">${escapeHtml(o.name)}</div>
-      <div class="lc-stats">
-        <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">${o.days===1?'day':'days'}</div></div>
-        <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
+      <div class="lc-top">
+        <div class="lc-name">${escapeHtml(o.name)}</div>
+        <div class="lc-stats">
+          <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">${o.days===1?'day':'days'}</div></div>
+          <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
+        </div>
       </div>
+      <div class="lc-spark" title="last 90 days">${o.spark}</div>
     </div>`;
   }).join('');
   return `<div class="d-card">
