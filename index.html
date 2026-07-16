@@ -109,9 +109,16 @@
   .cstat .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:8px}
   .bars{display:flex;align-items:flex-end;gap:7px}
   .bars .col{flex:1;display:flex;flex-direction:column;align-items:center}
-  .bars .bar{width:100%;background:var(--line-strong);border-radius:4px 4px 0 0;min-height:4px}
-  .bars .col.last .bar{background:var(--accent)}
+  .bars .bar{width:100%;display:flex;flex-direction:column;justify-content:flex-end;background:var(--line);border-radius:4px 4px 0 0;overflow:hidden;min-height:4px}
+  .bars .bar .seg{width:100%}
+  .bars .bar .seg.eff{background:var(--c-cardio)}
+  .bars .bar .seg.vol{background:var(--accent)}
   .bars .bcap{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:7px;white-space:nowrap}
+  .bar-legend{display:flex;gap:14px;margin:-2px 0 12px}
+  .bar-legend .lg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:var(--dim)}
+  .bar-legend .lg .sw{width:9px;height:9px;border-radius:2px}
+  .bar-legend .lg .sw.vol{background:var(--accent)}
+  .bar-legend .lg .sw.eff{background:var(--c-cardio)}
   .catrow{display:flex;align-items:center;gap:10px;margin-bottom:13px}
   .catrow:last-child{margin-bottom:0}
   .catrow .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -856,13 +863,16 @@ function renderDashboard(){
   const avgVol=totalSessions?totalVol/totalSessions:0;
 
   const recent=dates.slice(0,8).reverse();
-  const vols=recent.map(d=>({d,v:sessionVolume(d)}));
-  const maxV=Math.max(1,...vols.map(x=>x.v));
-  const bars=vols.map((x,i)=>{
-    const h=x.v?Math.max(6,Math.round(x.v/maxV*88)):4;
+  const vols=recent.map(d=>({d,v:sessionVolume(d),e:sessionEffort(d)}));
+  const maxV=Math.max(1,...vols.map(x=>x.v+x.e));
+  const bars=vols.map(x=>{
+    const tot=x.v+x.e;
+    const h=tot?Math.max(6,Math.round(tot/maxV*88)):4;
+    const vh=tot?Math.round(x.v/tot*h):0;
+    const eh=h-vh;
     const dd=new Date(x.d+'T00:00:00');
     const cap=dd.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-    return `<div class="col${i===vols.length-1?' last':''}"><div class="bar" style="height:${h}px"></div><div class="bcap">${cap}</div></div>`;
+    return `<div class="col"><div class="bar" style="height:${h}px"><div class="seg eff" style="height:${eh}px"></div><div class="seg vol" style="height:${vh}px"></div></div><div class="bcap">${cap}</div></div>`;
   }).join('');
 
   const catCounts=CATS.map(c=>({c,n:inRange.filter(e=>e.cat===c.id).length}));
@@ -900,7 +910,11 @@ function renderDashboard(){
     </div>
     ${cardioCard}
     <div class="d-card">
-      <div class="d-title">volume · recent sessions</div>
+      <div class="d-title">volume + effort · recent sessions</div>
+      <div class="bar-legend">
+        <span class="lg"><span class="sw vol"></span>volume</span>
+        <span class="lg"><span class="sw eff"></span>effort</span>
+      </div>
       <div class="bars">${bars}</div>
     </div>
     <div class="d-card">
