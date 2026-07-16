@@ -288,6 +288,26 @@
   .stack-empty b{color:var(--dim);font-weight:500}
 
   /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
+  /* records dropdown (dashboard) — per-exercise best weight, grouped by category */
+  details.rec-card{padding:0;overflow:hidden}
+  .rec-summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+    padding:16px 16px 15px}
+  .rec-summary::-webkit-details-marker{display:none}
+  .rec-summary .d-title{margin-bottom:0}
+  .rec-chev{color:var(--faint);font-size:16px;line-height:1;transition:transform .18s}
+  details.rec-card[open] .rec-chev{transform:rotate(90deg)}
+  .rec-group{padding:0 16px}
+  .rec-group:last-child{padding-bottom:15px}
+  .rec-cat{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.8px;color:var(--dim);margin:4px 0 10px}
+  .rec-cat .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .rec-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .rec-group .rec-row:last-child{margin-bottom:16px}
+  .rec-name{flex:1;min-width:0;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rec-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent);flex-shrink:0}
+  .rec-val .rec-u{font-weight:400;color:var(--faint);font-size:10px}
+  .rec-date{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.3px;
+    width:78px;text-align:right;flex-shrink:0}
   .heat{position:relative;display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:14px}
   .heat .hc{aspect-ratio:1;border-radius:4px;background:var(--panel-2);cursor:pointer}
   .hc.l0{background:var(--panel-2)}
@@ -616,6 +636,53 @@ function rangeCut(range){
   const c=new Date();c.setDate(c.getDate()-days);
   return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
 }
+/* records — the best (heaviest) weight ever lifted for each exercise and the day
+   it was hit, grouped by category in log order. Collapsible, default closed. */
+let recordsOpen=false;
+function recRow(w){const n=parseFloat(w);return isNaN(n)?null:n;}
+function fmtRecDate(d){return new Date(d+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}
+function recordsCard(){
+  if(!entries.length)return '';
+  // best weighted set per exercise (cat + name), keeping the earliest date it was hit
+  const best={};
+  entries.forEach(e=>{
+    if(!e.sets||!e.sets.length)return;   // cardio / no sets
+    const name=(e.name||'').trim();
+    if(!name)return;
+    e.sets.forEach(s=>{
+      const w=recRow(s.weight);
+      if(w==null||w<=0)return;
+      const key=e.cat+'|'+name.toLowerCase();
+      const cur=best[key];
+      if(!cur||w>cur.weight){best[key]={cat:e.cat,name,weight:w,date:e.date};}
+      else if(w===cur.weight&&e.date<cur.date){cur.date=e.date;}
+    });
+  });
+  const all=Object.values(best);
+  if(!all.length)return '';
+  const groups=CATS.filter(c=>c.kind!=='cardio').map(c=>({
+    cat:c,
+    items:all.filter(r=>r.cat===c.id).sort((a,b)=>b.weight-a.weight||a.name.localeCompare(b.name)),
+  })).filter(g=>g.items.length);
+  const body=groups.map(g=>`
+    <div class="rec-group">
+      <div class="rec-cat"><span class="cdot" style="background:${g.cat.color}"></span>${g.cat.name}</div>
+      ${g.items.map(r=>`
+        <div class="rec-row">
+          <span class="rec-name">${escapeHtml(r.name)}</span>
+          <span class="rec-val">${fmtVol(r.weight)}<span class="rec-u"> lb</span></span>
+          <span class="rec-date">${fmtRecDate(r.date)}</span>
+        </div>`).join('')}
+    </div>`).join('');
+  return `<details class="d-card rec-card"${recordsOpen?' open':''}>
+    <summary class="rec-summary"><span class="d-title">records</span><span class="rec-chev">›</span></summary>
+    ${body}
+  </details>`;
+}
+function bindRecords(){
+  const el=document.querySelector('.rec-card');
+  if(el)el.addEventListener('toggle',()=>{recordsOpen=el.open;});
+}
 /* 30-day supplement heatmap — brighter cell = more total supplement logged
    that day. Shade is a quartile of the amount taken, from 0 to the busiest
    day's amount (with a max of 20: 1-5→l1, 6-10→l2, 11-15→l3, 16-20→l4). */
@@ -768,8 +835,8 @@ function renderDashboard(){
   if(inRange.length===0){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
-    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+suppHeatmapCard()+suppLifetimeCard();
-    bindSeg();bindHeatmap();return;
+    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+recordsCard()+suppHeatmapCard()+suppLifetimeCard();
+    bindSeg();bindRecords();bindHeatmap();return;
   }
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
@@ -811,7 +878,7 @@ function renderDashboard(){
       </div>
     </div>` : '';
 
-  const suppCard = suppHeatmapCard()+suppLifetimeCard();
+  const suppCard = recordsCard()+suppHeatmapCard()+suppLifetimeCard();
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
   host.innerHTML=seg+`
@@ -831,7 +898,7 @@ function renderDashboard(){
       ${catRows}
     </div>
     ${suppCard}`;
-  bindSeg();bindHeatmap();
+  bindSeg();bindRecords();bindHeatmap();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
