@@ -107,8 +107,8 @@
   .cstat .n{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
   .cstat.hero .n{color:var(--c-cardio)}
   .cstat .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:8px}
-  .bars{display:flex;align-items:flex-end;gap:7px}
-  .bars .col{flex:1;display:flex;flex-direction:column;align-items:center}
+  .bars{position:relative;display:flex;align-items:flex-end;gap:7px}
+  .bars .col{flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer}
   .bars .bar{width:100%;display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px 4px 0 0;overflow:hidden;min-height:4px}
   .bars .bar .bseg{width:100%;flex-shrink:0}
   .bars .bar .bseg.eff{background:var(--c-cardio)}
@@ -119,6 +119,24 @@
   .bar-legend .lg .sw{width:9px;height:9px;border-radius:2px}
   .bar-legend .lg .sw.vol{background:var(--accent)}
   .bar-legend .lg .sw.eff{background:var(--c-cardio)}
+  /* per-session breakdown popover (hover on desktop, tap on mobile) */
+  .bar-pop{position:absolute;z-index:20;min-width:154px;max-width:240px;pointer-events:none;
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:10px;
+    padding:9px 11px;box-shadow:0 8px 22px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+  .bar-pop.show{opacity:1;transform:translateY(0)}
+  .bar-pop .bp-date{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--faint);margin-bottom:8px}
+  .bar-pop .bp-head{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.5px;color:var(--dim);margin:9px 0 5px}
+  .bar-pop .bp-head:first-of-type{margin-top:0}
+  .bar-pop .bp-head .sw{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .bar-pop .bp-head .sw.vol{background:var(--accent)}
+  .bar-pop .bp-head .sw.eff{background:var(--c-cardio)}
+  .bar-pop .bp-head .bp-tot{margin-left:auto;color:var(--ink);font-weight:600}
+  .bar-pop .bp-item{display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:1.55}
+  .bar-pop .bp-name{color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-pop .bp-amt{font-family:var(--mono);color:var(--dim);white-space:nowrap;flex-shrink:0}
+  .bar-pop .bp-empty{font-family:var(--mono);font-size:11px;color:var(--faint)}
   .catrow{display:flex;align-items:center;gap:10px;margin-bottom:13px}
   .catrow:last-child{margin-bottom:0}
   .catrow .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -311,13 +329,14 @@
 
   /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
   /* records dropdown (dashboard) — per-exercise best weight, grouped by category */
-  details.rec-card{padding:0;overflow:hidden}
+  details.rec-card,details.lc-card{padding:0;overflow:hidden}
   .rec-summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
     padding:16px 16px 15px}
   .rec-summary::-webkit-details-marker{display:none}
   .rec-summary .d-title{margin-bottom:0}
   .rec-chev{color:var(--faint);font-size:16px;line-height:1;transition:transform .18s}
-  details.rec-card[open] .rec-chev{transform:rotate(90deg)}
+  details.rec-card[open] .rec-chev,details.lc-card[open] .rec-chev{transform:rotate(90deg)}
+  .lc-card .lc-body{padding:0 16px 16px}
   .rec-group{padding:0 16px}
   .rec-group:last-child{padding-bottom:15px}
   .rec-cat{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;
@@ -357,14 +376,18 @@
   .heat-pop .hp-empty{font-family:var(--mono);font-size:11px;color:var(--faint)}
 
   /* lifetime supplement counter (dashboard) — days taken + total amount */
-  .lc-row{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+  .lc-row{margin-bottom:16px}
   .lc-row:last-child{margin-bottom:0}
+  .lc-top{display:flex;align-items:center;gap:12px}
   .lc-name{font-size:14px;font-weight:600;color:var(--ink);flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lc-stats{display:flex;gap:18px;flex-shrink:0}
   .lc-stat{font-family:var(--mono);text-align:right}
   .lc-stat .lc-n{font-size:15px;font-weight:700;color:var(--accent);line-height:1}
   .lc-stat .lc-l{font-size:8.5px;text-transform:lowercase;letter-spacing:1px;color:var(--faint);margin-top:3px}
+  .lc-spark{display:flex;align-items:flex-end;gap:1px;height:22px;margin-top:9px}
+  .lc-spark .sp{flex:1;min-width:0;min-height:1.5px;background:var(--line-strong);border-radius:1px}
+  .lc-spark .sp.on{background:var(--accent)}
 
   input[type=file]{display:none}
 </style>
@@ -709,6 +732,7 @@ function rangeCut(range){
 /* records — the best (heaviest) weight ever lifted for each exercise and the day
    it was hit, grouped by category in log order. Collapsible, default closed. */
 let recordsOpen=false;
+let lifetimeOpen=false;
 function recRow(w){const n=parseFloat(w);return isNaN(n)?null:n;}
 function fmtRecDate(d){return new Date(d+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}
 function recordsCard(){
@@ -845,6 +869,67 @@ function bindHeatmap(){
     document.addEventListener('click',()=>{heatHide&&heatHide();});
   }
 }
+/* volume+effort chart — tap (or hover on desktop) a bar for that session's
+   breakdown: its lifts by volume and its cardio by effort. */
+let barsHide=null;
+function bindBars(){
+  const wrap=document.querySelector('.bars');
+  if(!wrap)return;
+  const pop=document.createElement('div');
+  pop.className='bar-pop';
+  wrap.appendChild(pop);
+  let pinned=null;
+  const fill=date=>{
+    const items=dayEntries(date);
+    let vol=0;const lifts=[];
+    items.forEach(e=>{
+      if(!e.sets||!e.sets.length)return;
+      let v=0;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});
+      if(v>0){vol+=v;lifts.push({name:e.name||'—',v});}
+    });
+    let eff=0;const cardios=[];
+    items.forEach(e=>{if(e.cat!=='cardio')return;const ce=cardioEffort(e);if(ce>0){eff+=ce;cardios.push({name:e.name||'—',e:ce});}});
+    const head=`<div class="bp-date">${fmtDateShort(date)}</div>`;
+    if(!vol&&!eff){pop.innerHTML=head+`<div class="bp-empty">nothing logged</div>`;return;}
+    let html=head;
+    if(vol>0){
+      html+=`<div class="bp-head"><span class="sw vol"></span>volume<span class="bp-tot">${fmtVol(vol)} lb</span></div>`;
+      html+=lifts.sort((a,b)=>b.v-a.v).map(l=>`<div class="bp-item"><span class="bp-name">${escapeHtml(l.name)}</span><span class="bp-amt">${fmtVol(l.v)}</span></div>`).join('');
+    }
+    if(eff>0){
+      html+=`<div class="bp-head"><span class="sw eff"></span>effort<span class="bp-tot">${fmtVol(eff)}</span></div>`;
+      html+=cardios.sort((a,b)=>b.e-a.e).map(c=>`<div class="bp-item"><span class="bp-name">${escapeHtml(c.name)}</span><span class="bp-amt">${fmtVol(c.e)}</span></div>`).join('');
+    }
+    pop.innerHTML=html;
+  };
+  const showFor=col=>{
+    fill(col.dataset.date);
+    pop.classList.add('show');
+    const pw=pop.offsetWidth,ph=pop.offsetHeight;
+    const cx=col.offsetLeft+col.offsetWidth/2;
+    const left=Math.max(0,Math.min(cx-pw/2,wrap.clientWidth-pw));
+    const bar=col.querySelector('.bar');
+    const barTop=bar?bar.offsetTop:col.offsetTop;
+    let top=barTop-ph-6;
+    if(top<0)top=0;
+    pop.style.left=left+'px';pop.style.top=top+'px';
+  };
+  const hide=()=>{pop.classList.remove('show');pinned=null;};
+  barsHide=hide;
+  wrap.querySelectorAll('.col').forEach(col=>{
+    col.addEventListener('mouseenter',()=>{if(!pinned)showFor(col);});
+    col.addEventListener('mouseleave',()=>{if(!pinned)hide();});
+    col.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(pinned===col){hide();return;}
+      pinned=col;showFor(col);
+    });
+  });
+  if(!window.__barsDocBound){
+    window.__barsDocBound=true;
+    document.addEventListener('click',()=>{barsHide&&barsHide();});
+  }
+}
 /* lifetime counter — groups the log by supplement name and tallies, across all
    history, how many distinct days each was taken and the total amount. Every
    logged supplement is listed (ranked by days taken) so the counter is visible
@@ -856,39 +941,60 @@ function suppLifetimeCard(){
     const nm=(s.name||'').trim();
     const key=nm.toLowerCase();
     if(!key)return;
-    const o=by[key]||(by[key]={name:nm,days:new Set(),units:{}});
+    const o=by[key]||(by[key]={name:nm,days:new Set(),units:{},byDate:{}});
     o.days.add(s.date);
     const {amount,unit}=suppAmountUnit(s);
     const amt=parseFloat(amount);
+    const day=o.byDate[s.date]||(o.byDate[s.date]={amt:0,cnt:0});
+    day.cnt++;
     if(!isNaN(amt)){
       const u=(unit||'').trim();
       const rec=o.units[u]||(o.units[u]={sum:0,count:0});
       rec.sum+=amt;rec.count++;
+      day.amt+=amt;
     }
   });
+  // 90-day sparkline: daily consumption oldest→today, empty days included. Uses
+  // the logged amount where present, else falls back to entry count so a
+  // supplement logged without a numeric dose still charts by frequency.
+  const sparkStart=shiftDate(todayStr(),-89);
+  const sparkFor=o=>{
+    const days=[];let hasAmt=false;
+    for(let i=0;i<90;i++){const d=shiftDate(sparkStart,i);const r=o.byDate[d];if(r&&r.amt>0)hasAmt=true;days.push(r||{amt:0,cnt:0});}
+    const vals=days.map(r=>hasAmt?r.amt:r.cnt);
+    const mx=Math.max(0,...vals);
+    return vals.map(v=>`<span class="sp${v>0?' on':''}" style="height:${mx>0&&v>0?Math.max(12,Math.round(v/mx*100)):0}%"></span>`).join('');
+  };
   const rows=Object.values(by)
     .map(o=>{
       // display the total in the unit logged most often for that supplement
       let best=null;
       for(const u in o.units){const r=o.units[u];if(!best||r.count>best.count)best={unit:u,sum:r.sum};}
-      return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:''};
+      return {name:o.name,days:o.days.size,total:best?best.sum:null,unit:best?best.unit:'',spark:sparkFor(o)};
     })
     .sort((a,b)=>b.days-a.days||a.name.localeCompare(b.name));
   if(!rows.length)return '';
   const list=rows.map(o=>{
     const amtStr=o.total!=null?`${fmtVol(o.total)}${o.unit?' '+escapeHtml(o.unit):''}`:'—';
     return `<div class="lc-row">
-      <div class="lc-name">${escapeHtml(o.name)}</div>
-      <div class="lc-stats">
-        <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">${o.days===1?'day':'days'}</div></div>
-        <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
+      <div class="lc-top">
+        <div class="lc-name">${escapeHtml(o.name)}</div>
+        <div class="lc-stats">
+          <div class="lc-stat"><div class="lc-n">${o.days}</div><div class="lc-l">${o.days===1?'day':'days'}</div></div>
+          <div class="lc-stat"><div class="lc-n">${amtStr}</div><div class="lc-l">total</div></div>
+        </div>
       </div>
+      <div class="lc-spark" title="last 90 days">${o.spark}</div>
     </div>`;
   }).join('');
-  return `<div class="d-card">
-    <div class="d-title">lifetime</div>
-    ${list}
-  </div>`;
+  return `<details class="d-card lc-card"${lifetimeOpen?' open':''}>
+    <summary class="rec-summary"><span class="d-title">lifetime</span><span class="rec-chev">›</span></summary>
+    <div class="lc-body">${list}</div>
+  </details>`;
+}
+function bindLifetime(){
+  const el=document.querySelector('.lc-card');
+  if(el)el.addEventListener('toggle',()=>{lifetimeOpen=el.open;});
 }
 function renderDashboard(){
   const host=document.getElementById('dash');
@@ -906,7 +1012,7 @@ function renderDashboard(){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
     host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+recordsCard()+suppHeatmapCard()+suppLifetimeCard();
-    bindSeg();bindRecords();bindHeatmap();return;
+    bindSeg();bindRecords();bindLifetime();bindHeatmap();return;
   }
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
@@ -925,7 +1031,7 @@ function renderDashboard(){
     const eh=h-vh;
     const dd=new Date(x.d+'T00:00:00');
     const cap=dd.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-    return `<div class="col"><div class="bar" style="height:${h}px"><div class="bseg eff" style="height:${eh}px"></div><div class="bseg vol" style="height:${vh}px"></div></div><div class="bcap">${cap}</div></div>`;
+    return `<div class="col" data-date="${x.d}"><div class="bar" style="height:${h}px"><div class="bseg eff" style="height:${eh}px"></div><div class="bseg vol" style="height:${vh}px"></div></div><div class="bcap">${cap}</div></div>`;
   }).join('');
 
   const catCounts=CATS.map(c=>({c,n:inRange.filter(e=>e.cat===c.id).length}));
@@ -975,7 +1081,7 @@ function renderDashboard(){
       ${catRows}
     </div>
     ${suppCard}`;
-  bindSeg();bindRecords();bindHeatmap();
+  bindSeg();bindRecords();bindLifetime();bindHeatmap();bindBars();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
