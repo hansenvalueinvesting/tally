@@ -311,13 +311,14 @@
 
   /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
   /* records dropdown (dashboard) — per-exercise best weight, grouped by category */
-  details.rec-card{padding:0;overflow:hidden}
+  details.rec-card,details.lc-card{padding:0;overflow:hidden}
   .rec-summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
     padding:16px 16px 15px}
   .rec-summary::-webkit-details-marker{display:none}
   .rec-summary .d-title{margin-bottom:0}
   .rec-chev{color:var(--faint);font-size:16px;line-height:1;transition:transform .18s}
-  details.rec-card[open] .rec-chev{transform:rotate(90deg)}
+  details.rec-card[open] .rec-chev,details.lc-card[open] .rec-chev{transform:rotate(90deg)}
+  .lc-card .lc-body{padding:0 16px 16px}
   .rec-group{padding:0 16px}
   .rec-group:last-child{padding-bottom:15px}
   .rec-cat{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;
@@ -713,6 +714,7 @@ function rangeCut(range){
 /* records — the best (heaviest) weight ever lifted for each exercise and the day
    it was hit, grouped by category in log order. Collapsible, default closed. */
 let recordsOpen=false;
+let lifetimeOpen=false;
 function recRow(w){const n=parseFloat(w);return isNaN(n)?null:n;}
 function fmtRecDate(d){return new Date(d+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}
 function recordsCard(){
@@ -906,10 +908,14 @@ function suppLifetimeCard(){
       <div class="lc-spark" title="last 90 days">${o.spark}</div>
     </div>`;
   }).join('');
-  return `<div class="d-card">
-    <div class="d-title">lifetime</div>
-    ${list}
-  </div>`;
+  return `<details class="d-card lc-card"${lifetimeOpen?' open':''}>
+    <summary class="rec-summary"><span class="d-title">lifetime</span><span class="rec-chev">›</span></summary>
+    <div class="lc-body">${list}</div>
+  </details>`;
+}
+function bindLifetime(){
+  const el=document.querySelector('.lc-card');
+  if(el)el.addEventListener('toggle',()=>{lifetimeOpen=el.open;});
 }
 function renderDashboard(){
   const host=document.getElementById('dash');
@@ -927,7 +933,7 @@ function renderDashboard(){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
     host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+recordsCard()+suppHeatmapCard()+suppLifetimeCard();
-    bindSeg();bindRecords();bindHeatmap();return;
+    bindSeg();bindRecords();bindLifetime();bindHeatmap();return;
   }
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
@@ -996,7 +1002,7 @@ function renderDashboard(){
       ${catRows}
     </div>
     ${suppCard}`;
-  bindSeg();bindRecords();bindHeatmap();
+  bindSeg();bindRecords();bindLifetime();bindHeatmap();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
