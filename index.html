@@ -611,13 +611,12 @@ function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets
 function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='cardio')e+=cardioEffort(it);});return e;}
 
 /* ---------- cardio effort ---------- */
-/* Baked-in weights. time = 300 points/min (an honest cross-activity effort unit),
-   distance = 1800 points/km (anchored to a moderate ~6 min/km run so distance and
-   time weigh about equally for a typical run; longer rides still add distance
-   credit, tempered by averaging the two when both are logged). Scaled so a typical
-   ~45-min cardio session lands around a solid lifting session's volume (~10-20k),
-   since the two share a chart. */
-const EFFORT={dist:1800,time:300};
+/* Cardio score = the workout expressed in feet. Distance is converted straight
+   to feet; time is converted to feet at a fixed 5:15 min/km pace (i.e. distance =
+   time / 5.25 min-per-km, then km -> ft). When both are logged we average the two. */
+const FT_PER_KM=3280.84;          // feet in a kilometer
+const PACE_MIN_PER_KM=5.25;       // 5:15 min/km -> minutes to cover 1 km
+const EFFORT={dist:FT_PER_KM,time:FT_PER_KM/PACE_MIN_PER_KM};
 /* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
 function parseDistanceKm(str){
   if(!str)return null;
@@ -644,7 +643,7 @@ function parseMinutes(str){
   if(u==='s'||u==='sec'||u==='secs')return val/60;
   return val;   // minutes
 }
-/* effort = distance*dist + time*time; averaged when both are present */
+/* score in feet: distance->ft directly, time->ft at 5:15 min/km; averaged when both present */
 function cardioEffort(it){
   const km=parseDistanceKm(it.distance), min=parseMinutes(it.time);
   const eD=km!=null?km*EFFORT.dist:null, eT=min!=null?min*EFFORT.time:null;
