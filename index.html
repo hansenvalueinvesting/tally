@@ -891,7 +891,6 @@ function renderDashboard(){
   const totalSessions=dates.length;
   let totalVol=0,totalSets=0;
   inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{totalSets++;const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
-  const avgVol=totalSessions?totalVol/totalSessions:0;
 
   const recent=dates.slice(0,8).reverse();
   const vols=recent.map(d=>({d,v:sessionVolume(d),e:sessionEffort(d)}));
@@ -920,14 +919,6 @@ function renderDashboard(){
   const cardio=inRange.filter(e=>e.cat==='cardio');
   let cardioEff=0;
   cardio.forEach(e=>{cardioEff+=cardioEffort(e);});
-  const cardioCard = cardio.length ? `
-    <div class="d-card">
-      <div class="d-title">cardio</div>
-      <div class="cardio-stats">
-        <div class="cstat hero"><div class="n">${fmtVol(cardioEff)}</div><div class="l">score</div></div>
-        <div class="cstat"><div class="n">${cardio.length}</div><div class="l">sessions</div></div>
-      </div>
-    </div>` : '';
 
   const suppCard = recordsCard()+suppLifetimeCard();
 
@@ -935,11 +926,10 @@ function renderDashboard(){
   host.innerHTML=seg+`
     <div class="kpi-grid">
       <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
+      <div class="kpi"><div class="n">${fmtVol(cardioEff)}</div><div class="l">cardio</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
-      <div class="kpi"><div class="n">${fmtVol(avgVol)}<span class="u"> lb</span></div><div class="l">avg / session</div></div>
       <div class="kpi"><div class="n">${totalSets}</div><div class="l">sets</div></div>
     </div>
-    ${cardioCard}
     <div class="d-card">
       <div class="d-title">volume + cardio · recent sessions</div>
       <div class="bar-legend">
