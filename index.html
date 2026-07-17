@@ -98,6 +98,7 @@
   .kpi{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:15px 16px}
   .kpi .n{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;color:var(--ink)}
   .kpi.hero .n{color:var(--accent)}
+  .kpi.cardio .n{color:var(--c-cardio)}
   .kpi .n .u{font-size:13px;font-weight:500;color:var(--faint)}
   .kpi .l{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:9px}
   .d-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
@@ -926,7 +927,7 @@ function renderDashboard(){
   host.innerHTML=seg+`
     <div class="kpi-grid">
       <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
-      <div class="kpi"><div class="n">${fmtVol(cardioEff)}</div><div class="l">cardio</div></div>
+      <div class="kpi cardio"><div class="n">${fmtVol(cardioEff)}</div><div class="l">cardio</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
       <div class="kpi"><div class="n">${totalSets}</div><div class="l">sets</div></div>
     </div>
