@@ -192,6 +192,11 @@
   .s-datepick{background:var(--panel);border:1px solid var(--line-strong);color:var(--ink);
     padding:8px 10px;border-radius:9px;font-size:12px;display:none}
   .s-datepick.show{display:block}
+  .del-day{background:var(--panel);border:1px solid var(--line-strong);color:var(--faint);
+    width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;
+    align-items:center;justify-content:center}
+  .del-day svg{width:19px;height:19px}
+  .del-day:active{background:var(--panel-2);color:var(--rose)}
 
   #groups{padding:16px 0 calc(env(safe-area-inset-bottom) + 96px)}
 
@@ -403,6 +408,7 @@
         <div class="st-edit" id="stEditToggle">edit date ▾</div>
       </div>
       <input type="date" class="s-datepick" id="sDatePick">
+      <button class="del-day" id="delDayBtn" aria-label="delete this day's log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg></button>
     </div>
   </header>
   <div id="groups"></div>
@@ -1334,6 +1340,15 @@ function renderSummary(todays){
 /* ---------- session nav / date edit ---------- */
 document.getElementById('backBtn').onclick=()=>switchTab('log');
 document.getElementById('doneBtn').onclick=()=>switchTab('log');
+/* delete an entire day's log — every entry logged on the current date */
+document.getElementById('delDayBtn').onclick=async()=>{
+  const todays=dayEntries(currentDate);
+  if(todays.length===0){switchTab('log');return;}
+  if(!confirm(`Delete this entire day's log? ${todays.length} exercise${todays.length!==1?'s':''} on ${fmtDate(currentDate)} will be permanently removed.`))return;
+  for(const it of todays){await delEntry(it.id);}
+  entries=entries.filter(e=>e.date!==currentDate);
+  switchTab('log');
+};
 const sDatePick=document.getElementById('sDatePick');
 document.getElementById('stEditToggle').onclick=()=>sDatePick.classList.toggle('show');
 sDatePick.onchange=async()=>{
