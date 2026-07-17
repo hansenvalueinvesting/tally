@@ -327,16 +327,14 @@
     padding:40px 24px 28px;line-height:1.8}
   .stack-empty b{color:var(--dim);font-weight:500}
 
-  /* supplement heatmap (dashboard) — 30 days, 10 cols x 3 rows */
   /* records dropdown (dashboard) — per-exercise best weight, grouped by category */
-  details.rec-card,details.lc-card{padding:0;overflow:hidden}
+  details.rec-card{padding:0;overflow:hidden}
   .rec-summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
     padding:16px 16px 15px}
   .rec-summary::-webkit-details-marker{display:none}
   .rec-summary .d-title{margin-bottom:0}
   .rec-chev{color:var(--faint);font-size:16px;line-height:1;transition:transform .18s}
-  details.rec-card[open] .rec-chev,details.lc-card[open] .rec-chev{transform:rotate(90deg)}
-  .lc-card .lc-body{padding:0 16px 16px}
+  details.rec-card[open] .rec-chev{transform:rotate(90deg)}
   .rec-group{padding:0 16px}
   .rec-group:last-child{padding-bottom:15px}
   .rec-cat{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;
@@ -349,32 +347,6 @@
   .rec-val .rec-u{font-weight:400;color:var(--faint);font-size:10px}
   .rec-date{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.3px;
     width:78px;text-align:right;flex-shrink:0}
-  .heat{position:relative;display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:14px}
-  .heat .hc{aspect-ratio:1;border-radius:4px;background:var(--panel-2);cursor:pointer}
-  .hc.l0{background:var(--panel-2)}
-  .hc.l1{background:rgba(204,255,51,.28)}
-  .hc.l2{background:rgba(204,255,51,.5)}
-  .hc.l3{background:rgba(204,255,51,.74)}
-  .hc.l4{background:var(--accent)}
-  .heat .hc.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--line-strong)}
-  .heat-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--faint)}
-  .heat-legend{display:flex;align-items:center;gap:4px}
-  .heat-legend .hc{width:11px;height:11px;border-radius:3px;cursor:default}
-  /* per-day breakdown popover (hover on desktop, tap on mobile) */
-  .heat-pop{position:absolute;z-index:20;min-width:148px;max-width:220px;pointer-events:none;
-    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:10px;
-    padding:9px 11px;box-shadow:0 8px 22px rgba(0,0,0,.55);
-    opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
-  .heat-pop.show{opacity:1;transform:translateY(0)}
-  .heat-pop .hp-date{font-family:var(--mono);font-size:10px;letter-spacing:.5px;
-    color:var(--faint);margin-bottom:7px}
-  .heat-pop .hp-item{display:flex;justify-content:space-between;gap:12px;
-    font-size:12px;line-height:1.5}
-  .heat-pop .hp-name{color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .heat-pop .hp-dose{font-family:var(--mono);color:var(--dim);white-space:nowrap;flex-shrink:0}
-  .heat-pop .hp-empty{font-family:var(--mono);font-size:11px;color:var(--faint)}
-
   /* lifetime supplement counter (dashboard) — days taken + total amount */
   .lc-row{margin-bottom:16px}
   .lc-row:last-child{margin-bottom:0}
@@ -525,9 +497,7 @@
         <p><b>records</b> — the single heaviest set ever logged for each exercise, with the day you first hit it, grouped by category. tap to expand.</p>
 
         <h4>supplements</h4>
-        <p>logged per day on the supps tab, then summarised on the dashboard two ways:</p>
-        <p><b>last 30 days</b> — one square per day; the more you took that day, the brighter the square (shaded in four steps up to your busiest day). tap any square to see that day's breakdown.</p>
-        <p><b>lifetime</b> — every supplement you've ever logged, with how many separate days you took it and the running total (shown in whichever unit you use most for it), ranked by days taken.</p>
+        <p>logged per day on the supps tab, then summarised on the dashboard: every supplement you've ever logged, with how many separate days you took it and the running total (shown in whichever unit you use most for it), ranked by days taken.</p>
 
         <h4>numbers &amp; storage</h4>
         <p>any figure of 1,000 or more is shortened with a <b>k</b> — 1,500 shows as 1.5k. and everything stays on this device, in the browser's own database: no server ever sees it. export a json backup whenever you like, and import it to restore.</p>
@@ -732,7 +702,6 @@ function rangeCut(range){
 /* records — the best (heaviest) weight ever lifted for each exercise and the day
    it was hit, grouped by category in log order. Collapsible, default closed. */
 let recordsOpen=false;
-let lifetimeOpen=false;
 function recRow(w){const n=parseFloat(w);return isNaN(n)?null:n;}
 function fmtRecDate(d){return new Date(d+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}
 function recordsCard(){
@@ -776,98 +745,6 @@ function recordsCard(){
 function bindRecords(){
   const el=document.querySelector('.rec-card');
   if(el)el.addEventListener('toggle',()=>{recordsOpen=el.open;});
-}
-/* 30-day supplement heatmap — brighter cell = more total supplement logged
-   that day. Shade is a quartile of the amount taken, from 0 to the busiest
-   day's amount (with a max of 20: 1-5→l1, 6-10→l2, 11-15→l3, 16-20→l4). */
-function suppHeatmapCard(){
-  if(!suppLog.length)return '';
-  const today=todayStr();
-  // aggregate per day: total amount, entry count, and the unit used most
-  const byDay={};
-  suppLog.forEach(s=>{
-    const rec=byDay[s.date]||(byDay[s.date]={amt:0,cnt:0,units:{}});
-    rec.cnt++;
-    const {amount,unit}=suppAmountUnit(s);
-    const a=parseFloat(amount);
-    if(!isNaN(a)){rec.amt+=a;const u=(unit||'').trim();rec.units[u]=(rec.units[u]||0)+1;}
-  });
-  const start=shiftDate(today,-29);
-  const days=[];
-  for(let i=0;i<30;i++){
-    const d=shiftDate(start,i);
-    const rec=byDay[d]||{amt:0,cnt:0,units:{}};
-    let unit='',best=-1;
-    for(const u in rec.units){if(rec.units[u]>best){best=rec.units[u];unit=u;}}
-    days.push({date:d,amt:rec.amt,cnt:rec.cnt,unit});
-  }
-  const total=days.reduce((a,d)=>a+d.cnt,0);
-  const activeDays=days.filter(d=>d.cnt>0).length;
-  // colour by the day's total amount, split into quartiles of 0→busiest day.
-  const maxAmt=Math.max(0,...days.map(d=>d.amt));
-
-  // chronological grid: oldest top-left → today bottom-right (10 cols × 3 rows)
-  const cellHtml=days.map(c=>{
-    const lvl=c.amt>0?Math.min(4,Math.ceil(c.amt/maxAmt*4)):(c.cnt>0?1:0);
-    const cls='hc l'+lvl+(c.date===today?' today':'');
-    return `<span class="${cls}" data-date="${c.date}"></span>`;
-  }).join('');
-
-  return `<div class="d-card">
-    <div class="d-title">supplements · last 30 days</div>
-    <div class="heat">${cellHtml}</div>
-    <div class="heat-foot">
-      <span>${total} logged · ${activeDays} day${activeDays!==1?'s':''}</span>
-      <span class="heat-legend">less
-        <span class="hc l0"></span><span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span>
-      more</span>
-    </div>
-  </div>`;
-}
-/* wire up the heatmap's per-day breakdown popover: hover shows it on desktop,
-   tap toggles (pins) it on mobile; tapping elsewhere or another cell dismisses. */
-let heatHide=null;
-function bindHeatmap(){
-  const heat=document.querySelector('.heat');
-  if(!heat)return;
-  const pop=document.createElement('div');
-  pop.className='heat-pop';
-  heat.appendChild(pop);
-  let pinned=null;
-  const fill=date=>{
-    const list=daySupps(date);
-    const head=`<div class="hp-date">${fmtDateShort(date)}</div>`;
-    if(!list.length){pop.innerHTML=head+`<div class="hp-empty">nothing logged</div>`;return;}
-    pop.innerHTML=head+list.map(s=>{
-      const d=doseText(s);
-      return `<div class="hp-item"><span class="hp-name">${escapeHtml(s.name)}</span>${d?`<span class="hp-dose">${escapeHtml(d)}</span>`:''}</div>`;
-    }).join('');
-  };
-  const showFor=cell=>{
-    fill(cell.dataset.date);
-    pop.classList.add('show');
-    const pw=pop.offsetWidth,ph=pop.offsetHeight;
-    const cx=cell.offsetLeft+cell.offsetWidth/2;
-    let left=Math.max(0,Math.min(cx-pw/2,heat.clientWidth-pw));
-    let top=cell.offsetTop-ph-6;
-    if(top<0)top=cell.offsetTop+cell.offsetHeight+6;
-    pop.style.left=left+'px';pop.style.top=top+'px';
-  };
-  const hide=()=>{pop.classList.remove('show');pinned=null;};
-  heatHide=hide;
-  heat.querySelectorAll('.hc').forEach(cell=>{
-    cell.addEventListener('mouseenter',()=>{if(!pinned)showFor(cell);});
-    cell.addEventListener('mouseleave',()=>{if(!pinned)hide();});
-    cell.addEventListener('click',e=>{
-      e.stopPropagation();
-      if(pinned===cell){hide();return;}
-      pinned=cell;showFor(cell);
-    });
-  });
-  if(!window.__heatDocBound){
-    window.__heatDocBound=true;
-    document.addEventListener('click',()=>{heatHide&&heatHide();});
-  }
 }
 /* volume+effort chart — tap (or hover on desktop) a bar for that session's
    breakdown: its lifts by volume and its cardio by effort. */
@@ -987,14 +864,10 @@ function suppLifetimeCard(){
       <div class="lc-spark" title="last 90 days">${o.spark}</div>
     </div>`;
   }).join('');
-  return `<details class="d-card lc-card"${lifetimeOpen?' open':''}>
-    <summary class="rec-summary"><span class="d-title">lifetime</span><span class="rec-chev">›</span></summary>
+  return `<div class="d-card lc-card">
+    <div class="d-title">supplements</div>
     <div class="lc-body">${list}</div>
-  </details>`;
-}
-function bindLifetime(){
-  const el=document.querySelector('.lc-card');
-  if(el)el.addEventListener('toggle',()=>{lifetimeOpen=el.open;});
+  </div>`;
 }
 function renderDashboard(){
   const host=document.getElementById('dash');
@@ -1011,8 +884,8 @@ function renderDashboard(){
   if(inRange.length===0){
     const msg = dashRange==='all' ? 'no sessions yet.' : 'nothing logged in this range.';
     const sub = dashRange==='all' ? 'log a session to see your stats.' : 'try a wider range, or log a session.';
-    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+recordsCard()+suppHeatmapCard()+suppLifetimeCard();
-    bindSeg();bindRecords();bindLifetime();bindHeatmap();return;
+    host.innerHTML=seg+`<div class="home-empty">${msg}<br><b>${sub}</b></div>`+recordsCard()+suppLifetimeCard();
+    bindSeg();bindRecords();return;
   }
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
@@ -1057,7 +930,7 @@ function renderDashboard(){
       </div>
     </div>` : '';
 
-  const suppCard = recordsCard()+suppHeatmapCard()+suppLifetimeCard();
+  const suppCard = recordsCard()+suppLifetimeCard();
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
   host.innerHTML=seg+`
@@ -1081,7 +954,7 @@ function renderDashboard(){
       ${catRows}
     </div>
     ${suppCard}`;
-  bindSeg();bindRecords();bindLifetime();bindHeatmap();bindBars();
+  bindSeg();bindRecords();bindBars();
 }
 
 /* ---------- LOG (session list) rendering ---------- */
