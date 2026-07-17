@@ -481,9 +481,9 @@
         <p>added up across every set in view. a set missing its reps or its weight is skipped. it's measured in lb and always drawn in <span style="color:var(--accent)">lime</span>.</p>
 
         <h4>cardio — your conditioning work</h4>
-        <p>a distance is read as kilometres (miles are converted, ×1.609); a time is read as minutes, and it accepts plain <b>45</b>, <b>28 min</b>, <b>1 h</b>, or <b>1:05:00</b>. from those, your cardio score is:</p>
-        <p class="f">cardio = km × 1800 + min × 300</p>
-        <p>if you log <b>both</b> distance and time, the two halves are averaged; if you log only one, that one stands alone. the weights are tuned so distance and time count about equally for a moderate ~6&nbsp;min/km run, and scaled up so cardio lands in the same range as volume. it's always drawn in <span style="color:var(--c-cardio)">blue</span>.</p>
+        <p>a distance is read as kilometres (miles are converted, ×1.609); a time is read as minutes, and it accepts plain <b>45</b>, <b>28 min</b>, <b>1 h</b>, or <b>1:05:00</b>. your cardio score is simply how far you went, in <b>feet</b>:</p>
+        <p class="f">from distance: ft = km × 3281<br>from time: ft = min × 547 &nbsp;(a 6 min/km pace)</p>
+        <p>if you log <b>both</b> distance and time, the two are averaged; if you log only one, that one stands alone. a time on its own is scored as the distance you'd cover at a steady 6&nbsp;min/km pace. it's always drawn in <span style="color:var(--c-cardio)">blue</span>.</p>
 
         <h4>the log tab</h4>
         <p>every session, newest first — each showing its <b>volume</b> and its <b>cardio</b> score, the exercise and set counts, and a coloured dot for every category you touched that day.</p>
@@ -612,10 +612,10 @@ function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='
 
 /* ---------- cardio effort ---------- */
 /* Cardio score = the workout expressed in feet. Distance is converted straight
-   to feet; time is converted to feet at a fixed 5:15 min/km pace (i.e. distance =
-   time / 5.25 min-per-km, then km -> ft). When both are logged we average the two. */
+   to feet; time is converted to feet at a fixed 6:00 min/km pace (i.e. distance =
+   time / 6 min-per-km, then km -> ft). When both are logged we average the two. */
 const FT_PER_KM=3280.84;          // feet in a kilometer
-const PACE_MIN_PER_KM=5.25;       // 5:15 min/km -> minutes to cover 1 km
+const PACE_MIN_PER_KM=6;          // 6:00 min/km -> minutes to cover 1 km
 const EFFORT={dist:FT_PER_KM,time:FT_PER_KM/PACE_MIN_PER_KM};
 /* read a distance like "20 km", "12 mi", "5k" -> km (or null) */
 function parseDistanceKm(str){
@@ -643,7 +643,7 @@ function parseMinutes(str){
   if(u==='s'||u==='sec'||u==='secs')return val/60;
   return val;   // minutes
 }
-/* score in feet: distance->ft directly, time->ft at 5:15 min/km; averaged when both present */
+/* score in feet: distance->ft directly, time->ft at 6:00 min/km; averaged when both present */
 function cardioEffort(it){
   const km=parseDistanceKm(it.distance), min=parseMinutes(it.time);
   const eD=km!=null?km*EFFORT.dist:null, eT=min!=null?min*EFFORT.time:null;
