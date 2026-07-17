@@ -607,6 +607,17 @@ function daySupps(date){return suppLog.filter(s=>s.date===date).sort((a,b)=>(a.t
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function dayEntries(date){return entries.filter(e=>e.date===date);}
 function sessionDates(){return [...new Set(entries.map(e=>e.date))].sort().reverse();}
+/* consecutive-day training streak, anchored to today (or yesterday, so it
+   doesn't reset before you've trained today); 0 if the last session is older */
+function currentStreak(){
+  const dates=new Set(entries.map(e=>e.date));
+  const today=todayStr();
+  let cur = dates.has(today) ? today : (dates.has(shiftDate(today,-1)) ? shiftDate(today,-1) : null);
+  if(cur===null)return 0;
+  let n=0;
+  while(dates.has(cur)){n++;cur=shiftDate(cur,-1);}
+  return n;
+}
 function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));}
 function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
 function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='cardio')e+=cardioEffort(it);});return e;}
@@ -890,8 +901,8 @@ function renderDashboard(){
 
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
   const totalSessions=dates.length;
-  let totalVol=0,totalSets=0;
-  inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{totalSets++;const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
+  let totalVol=0;
+  inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
 
   const recent=dates.slice(0,8).reverse();
   const vols=recent.map(d=>({d,v:sessionVolume(d),e:sessionEffort(d)}));
@@ -924,12 +935,13 @@ function renderDashboard(){
   const suppCard = recordsCard()+suppLifetimeCard();
 
   const volLabel = dashRange==='all' ? 'total volume' : 'volume';
+  const streak = currentStreak();
   host.innerHTML=seg+`
     <div class="kpi-grid">
       <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
       <div class="kpi cardio"><div class="n">${fmtVol(cardioEff)}</div><div class="l">cardio</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
-      <div class="kpi"><div class="n">${totalSets}</div><div class="l">sets</div></div>
+      <div class="kpi"><div class="n">${streak}<span class="u"> 🔥</span></div><div class="l">day streak</div></div>
     </div>
     <div class="d-card">
       <div class="d-title">volume + cardio · recent sessions</div>
