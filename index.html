@@ -42,7 +42,7 @@
     --mono:'JetBrains Mono',monospace;
     --disp:'Space Grotesk',system-ui,sans-serif;
     --ui:'Inter',system-ui,sans-serif;
-    --nav-h:66px;
+    --nav-h:80px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
@@ -76,15 +76,42 @@
   /* ===== bottom nav ===== */
   .nav{
     position:fixed;bottom:0;left:0;right:0;z-index:50;max-width:640px;margin:0 auto;
-    background:rgba(10,10,10,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);
+    background:rgba(10,10,10,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);display:flex;align-items:stretch;
+    padding-bottom:env(safe-area-inset-bottom);
   }
   .in-session .nav{display:none}
-  .nav .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-    padding:14px 0 13px;color:var(--faint);font-size:9.5px;font-family:var(--mono);letter-spacing:.6px}
+  .nav .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:6px;padding:18px 0 16px;color:var(--faint);font-size:10px;font-family:var(--mono);letter-spacing:.7px}
   .nav .nav-btn.active{color:var(--accent)}
-  .nav .nav-btn svg{width:22px;height:22px;display:block}
-  .nav .nav-btn:active{opacity:.6}
+  .nav .nav-btn svg{width:25px;height:25px;display:block}
+  .nav .nav-btn:not(.nav-plan):active{opacity:.6}
+
+  /* raised glowing orb (the "log" button) */
+  .nav .nav-orb{position:relative;justify-content:flex-end;gap:0}
+  .nav-orb .orb{
+    position:absolute;left:50%;top:-22px;transform:translateX(-50%);
+    width:58px;height:58px;border-radius:50%;
+    background:radial-gradient(circle at 50% 32%, #eaff8f 0%, var(--accent) 55%, var(--accent-press) 100%);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 5px var(--bg),
+               0 0 16px 2px rgba(204,255,51,.55),
+               0 8px 20px rgba(0,0,0,.55);
+    animation:orbGlow 2.6s ease-in-out infinite;
+    transition:transform .16s ease;
+  }
+  .nav-orb .orb svg{width:27px;height:27px;stroke:var(--on-accent)}
+  .nav-orb .orb-lbl{margin-top:2px;color:var(--faint);transition:color .12s}
+  .nav-orb.active .orb-lbl{color:var(--accent)}
+  .nav-orb.active .orb{box-shadow:0 0 0 5px var(--bg),
+               0 0 22px 4px rgba(204,255,51,.75),
+               0 8px 22px rgba(0,0,0,.55)}
+  .nav-orb:active .orb{transform:translateX(-50%) scale(.93)}
+  @keyframes orbGlow{
+    0%,100%{box-shadow:0 0 0 5px var(--bg),0 0 14px 2px rgba(204,255,51,.45),0 8px 20px rgba(0,0,0,.55)}
+    50%{box-shadow:0 0 0 5px var(--bg),0 0 22px 5px rgba(204,255,51,.72),0 8px 20px rgba(0,0,0,.55)}
+  }
+  @media (prefers-reduced-motion:reduce){.nav-orb .orb{animation:none}}
 
   /* ===== HOME / dashboard ===== */
   #dash{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
@@ -254,40 +281,80 @@
   .add-trigger:active{background:var(--panel-2);color:var(--accent)}
 
   /* ===== PLANS (workout templates) ===== */
-  #plans{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
-  .plan{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:14px 15px;margin-bottom:12px}
-  .plan-top{display:flex;align-items:flex-start;gap:12px}
-  .plan .name{font-family:var(--disp);font-size:17px;font-weight:600;letter-spacing:-.2px;word-break:break-word}
-  .plan .stat{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:4px}
-  .plan .pc-dots{display:flex;gap:6px;margin-top:9px;align-items:center}
-  .plan .pc-dots .cdot{width:6px;height:6px;border-radius:50%}
-  .plan .pc-dots .empty-tag{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.5px}
-  .plan .edit{color:var(--faint);padding:3px 4px;display:flex;align-items:center}
+  #plans{padding:10px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
+  .plans-intro{font-family:var(--disp);font-size:22px;font-weight:700;letter-spacing:-.4px;
+    padding:2px 2px 4px}
+  .plans-sub{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.3px;
+    padding:0 2px 16px}
+
+  /* plan card (list) */
+  .plan{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:16px 16px 15px;margin-bottom:13px;position:relative;overflow:hidden}
+  .plan::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(180deg,var(--accent),var(--accent-press))}
+  .plan-top{display:flex;align-items:flex-start;gap:10px}
+  .plan .pc-info{flex:1;min-width:0}
+  .plan .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:-.4px;
+    word-break:break-word;line-height:1.12}
+  .plan .stat{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.5px;
+    text-transform:uppercase;margin-top:6px}
+  .plan .eactions{display:flex;gap:2px;flex-shrink:0}
+  .plan .edit{color:var(--faint);padding:5px 6px;display:flex;align-items:center;border-radius:8px}
   .plan .edit svg{width:15px;height:15px;display:block}
-  .plan .edit:active{color:var(--accent)}
-  .plan .del{color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
-  .plan .del:active{color:var(--rose)}
-  .plan-start{width:100%;margin-top:12px;background:var(--accent-wash);border:1px solid var(--line-strong);
-    color:var(--accent);padding:11px;border-radius:9px;font-size:12.5px;font-family:var(--mono);letter-spacing:.4px}
+  .plan .edit:active{color:var(--accent);background:var(--panel-2)}
+  .plan .del{color:var(--faint);font-size:19px;line-height:1;padding:3px 7px;border-radius:8px}
+  .plan .del:active{color:var(--rose);background:var(--panel-2)}
+  .pc-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+  .pc-chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 9px;
+    font-size:12px;color:var(--dim);max-width:100%}
+  .pc-chip .cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .pc-chip .pc-xname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pc-more{align-self:center;font-family:var(--mono);font-size:11px;color:var(--faint);padding-left:2px}
+  .pc-empty-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px}
+  .plan-start{width:100%;margin-top:15px;background:var(--accent-wash);
+    border:1px solid rgba(204,255,51,.3);color:var(--accent);
+    padding:13px;border-radius:11px;font-size:12.5px;font-weight:700;font-family:var(--mono);
+    letter-spacing:.6px;transition:background .12s,color .12s}
   .plan-start:active{background:var(--accent);color:var(--on-accent)}
-  .plan-start:disabled{opacity:.4;color:var(--faint);background:transparent}
-  .plan-new{margin-top:4px}
+  .plan-start:disabled{opacity:.45;color:var(--faint);background:transparent;border-color:var(--line)}
+  .plan-new{width:100%;margin-top:4px;background:transparent;border:1.5px dashed var(--line-strong);
+    color:var(--accent);padding:15px;border-radius:12px;font-size:13.5px;font-weight:600;
+    font-family:var(--mono);letter-spacing:.3px}
+  .plan-new:active{background:var(--accent-wash)}
 
   /* plan builder */
-  .plan-editor{border:1px dashed var(--line-strong);border-radius:10px;padding:14px}
-  .plan-editor .pe-label{font-family:var(--mono);font-size:10px;letter-spacing:.6px;
-    color:var(--faint);text-transform:uppercase;margin:6px 0 8px}
-  .plan-item{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-  .plan-item .pi-fields{flex:1;display:grid;grid-template-columns:1fr;gap:6px;min-width:0}
-  .plan-item .pi-sub-wrap:empty{display:none}
+  .plan-editor{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 16px}
+  .pe-title{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:-.3px;margin-bottom:15px}
+  .plan-editor .field{margin-bottom:15px}
+  .plan-editor .pe-name{font-family:var(--disp);font-size:16px;font-weight:600;text-transform:none;
+    padding:11px 12px}
+  .pe-label{display:flex;align-items:baseline;justify-content:space-between;
+    font-family:var(--mono);font-size:10px;letter-spacing:.9px;
+    color:var(--faint);text-transform:uppercase;margin:4px 0 11px}
+  .pe-label .pe-count{color:var(--accent);font-weight:700}
+  .pe-items{display:flex;flex-direction:column;gap:11px;margin-bottom:13px}
+  .plan-item{position:relative;background:var(--panel-2);border:1px solid var(--line);
+    border-left:3px solid var(--line-strong);border-radius:11px;padding:13px}
+  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .pi-idx{width:23px;height:23px;flex-shrink:0;border-radius:50%;background:var(--bg);
+    border:1px solid var(--line-strong);color:var(--dim);font-family:var(--mono);font-size:11px;
+    font-weight:700;display:flex;align-items:center;justify-content:center}
+  .pi-head .pi-cat{flex:1}
+  .pi-rm{color:var(--faint);font-size:19px;line-height:1;padding:3px 7px;flex-shrink:0;border-radius:7px}
+  .pi-rm:active{color:var(--rose);background:var(--bg)}
+  .pi-sub-wrap{margin-bottom:9px}
+  .pi-sub-wrap:empty{display:none}
   .plan-item select,.plan-item input{width:100%;background:var(--bg);border:1px solid var(--line-strong);
-    color:var(--ink);border-radius:8px;padding:9px 10px;font-family:var(--mono);font-size:13px}
+    color:var(--ink);border-radius:8px;padding:10px 11px;font-family:var(--mono);font-size:13px}
   .plan-item select:focus,.plan-item input:focus{outline:none;border-color:var(--accent)}
-  .plan-item .pi-rm{color:var(--faint);font-size:17px;padding:4px 6px;flex-shrink:0}
-  .plan-item .pi-rm:active{color:var(--rose)}
-  .pe-empty{font-family:var(--mono);font-size:11.5px;color:var(--faint);padding:2px 0 8px}
-  .plan-editor .pe-additem{margin-bottom:4px}
+  .plan-item .pi-name::placeholder{color:var(--faint)}
+  .pe-empty{font-family:var(--mono);font-size:11.5px;color:var(--faint);
+    text-align:center;padding:16px 0;border:1px dashed var(--line-strong);border-radius:11px}
+  .pe-additem{width:100%;background:transparent;border:1.5px dashed var(--line-strong);
+    color:var(--accent);border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.5px;
+    letter-spacing:.4px;margin-bottom:3px}
+  .pe-additem:active{background:var(--accent-wash)}
 
   /* session summary footer */
   .summary{
@@ -574,13 +641,13 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.8 12 3.5l9 7.3"/><path d="M5.5 9.3V20h13V9.3"/></svg>
     <span>home</span>
   </button>
-  <button class="nav-btn" data-tab="log">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg>
-    <span>log</span>
-  </button>
   <button class="nav-btn" data-tab="plans">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg>
-    <span>plans</span>
+    <span>plan</span>
+  </button>
+  <button class="nav-btn nav-orb" data-tab="log" aria-label="log">
+    <span class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg></span>
+    <span class="orb-lbl">log</span>
   </button>
   <button class="nav-btn" data-tab="stack">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-40 12 12)"><rect x="4.5" y="9" width="15" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></g></svg>
@@ -1090,11 +1157,15 @@ function renderPlans(){
     empty.innerHTML=`no plans yet.<br><b>build a template to reuse your go-to workouts.</b>`;
     host.appendChild(empty);
   }else{
+    const head=document.createElement('div');
+    head.innerHTML=`<div class="plans-intro">your plans</div>
+      <div class="plans-sub">${sorted.length} template${sorted.length!==1?'s':''} · tap a plan to start it</div>`;
+    host.appendChild(head);
     sorted.forEach(p=>host.appendChild(planCard(p)));
   }
 
   const add=document.createElement('button');
-  add.className='add-trigger plan-new';
+  add.className='plan-new';
   add.textContent='+ new plan';
   add.onclick=()=>{planEditor={id:null,name:'',items:[]};renderPlans();};
   host.appendChild(add);
@@ -1104,20 +1175,31 @@ function planCard(plan){
   const el=document.createElement('div');
   el.className='plan';
   const n=plan.items.length;
-  const dots=planCats(plan).map(c=>`<span class="cdot" style="background:${c.color}"></span>`).join('')
-    || '<span class="empty-tag">no exercises</span>';
+  const MAX_CHIPS=4;
+  let chips;
+  if(n===0){
+    chips=`<div class="pc-empty-note">no exercises — tap edit to add some</div>`;
+  }else{
+    const shown=plan.items.slice(0,MAX_CHIPS).map(it=>{
+      const c=CAT_MAP[it.cat];
+      const dot=c?`<span class="cdot" style="background:${c.color}"></span>`:'';
+      return `<span class="pc-chip">${dot}<span class="pc-xname">${escapeHtml(it.name||'—')}</span></span>`;
+    }).join('');
+    const extra=n>MAX_CHIPS?`<span class="pc-more">+${n-MAX_CHIPS} more</span>`:'';
+    chips=`<div class="pc-chips">${shown}${extra}</div>`;
+  }
   el.innerHTML=`
     <div class="plan-top">
-      <div class="ebody">
+      <div class="pc-info">
         <div class="name">${escapeHtml(plan.name)}</div>
         <div class="stat">${n} exercise${n!==1?'s':''}</div>
-        <div class="pc-dots">${dots}</div>
       </div>
       <div class="eactions">
         <button class="edit" aria-label="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg></button>
         <button class="del" aria-label="delete">×</button>
       </div>
     </div>
+    ${chips}
     <button class="plan-start">▸ start session from this</button>`;
   el.querySelector('.edit').onclick=()=>{
     planEditor={id:plan.id,name:plan.name,items:plan.items.map(it=>({...it}))};
@@ -1165,19 +1247,24 @@ function buildPlanEditor(draft){
   const wrap=document.createElement('div');
   wrap.className='plan-editor';
   wrap.innerHTML=`
+    <div class="pe-title">${draft.id?'edit plan':'new plan'}</div>
     <div class="field"><label>Plan name</label>
       <input class="pe-name" placeholder="e.g. push day" autocomplete="off" value="${escapeHtml(draft.name||'')}"></div>
-    <div class="pe-label">exercises</div>
+    <div class="pe-label"><span>exercises</span><span class="pe-count">0</span></div>
     <div class="pe-items"></div>
-    <button class="addset pe-additem">+ add exercise</button>
+    <button class="pe-additem">+ add exercise</button>
     <div class="add-actions">
       <button class="btn-save pe-save">${draft.id?'Update plan':'Save plan'}</button>
       <button class="btn-cancel pe-cancel">Cancel</button>
     </div>`;
   const itemsHost=wrap.querySelector('.pe-items');
+  const countEl=wrap.querySelector('.pe-count');
   let rows=[];
 
-  const updateEmpty=()=>{
+  // keep index badges + count in sync, and show an empty hint when there are none
+  const refresh=()=>{
+    countEl.textContent=rows.length;
+    rows.forEach((r,i)=>{const b=r.querySelector('.pi-idx');if(b)b.textContent=i+1;});
     let hint=wrap.querySelector('.pe-empty');
     if(rows.length===0){
       if(!hint){
@@ -1194,35 +1281,37 @@ function buildPlanEditor(draft){
     row.className='plan-item';
     const catOpts=CATS.map(c=>`<option value="${c.id}"${item.cat===c.id?' selected':''}>${c.name}</option>`).join('');
     row.innerHTML=`
-      <div class="pi-fields">
+      <div class="pi-head">
+        <span class="pi-idx"></span>
         <select class="pi-cat">${catOpts}</select>
-        <span class="pi-sub-wrap"></span>
-        <input class="pi-name" placeholder="exercise" autocomplete="off" value="${escapeHtml(item.name||'')}">
+        <button class="pi-rm" aria-label="remove">×</button>
       </div>
-      <button class="pi-rm" aria-label="remove">×</button>`;
+      <span class="pi-sub-wrap"></span>
+      <input class="pi-name" placeholder="exercise name" autocomplete="off" value="${escapeHtml(item.name||'')}">`;
     const catSel=row.querySelector('.pi-cat');
     const subWrap=row.querySelector('.pi-sub-wrap');
-    const paintSub=selected=>{
+    const paintCat=selected=>{
       const cat=CAT_MAP[catSel.value];
-      if(cat.sub){
+      row.style.borderLeftColor=cat?cat.color:'var(--line-strong)';
+      if(cat&&cat.sub){
         subWrap.innerHTML=`<select class="pi-sub">`+
           cat.sub.map(s=>`<option${selected===s?' selected':''}>${s}</option>`).join('')+`</select>`;
       }else subWrap.innerHTML='';
     };
-    paintSub(item.sub);
-    catSel.onchange=()=>paintSub(null);
+    paintCat(item.sub);
+    catSel.onchange=()=>paintCat(null);
     row.querySelector('.pi-rm').onclick=()=>{
       row.remove();
       rows=rows.filter(r=>r!==row);
-      updateEmpty();
+      refresh();
     };
     itemsHost.appendChild(row);
     rows.push(row);
-    updateEmpty();
+    refresh();
   };
 
   (draft.items&&draft.items.length?draft.items:[]).forEach(addRow);
-  updateEmpty();
+  refresh();
   wrap.querySelector('.pe-additem').onclick=()=>addRow();
   wrap.querySelector('.pe-cancel').onclick=()=>{planEditor=null;renderPlans();};
 
