@@ -253,6 +253,42 @@
     padding:11px;border-radius:9px;font-size:13px;font-family:var(--mono);letter-spacing:.2px;margin-top:2px}
   .add-trigger:active{background:var(--panel-2);color:var(--accent)}
 
+  /* ===== PLANS (workout templates) ===== */
+  #plans{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
+  .plan{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 15px;margin-bottom:12px}
+  .plan-top{display:flex;align-items:flex-start;gap:12px}
+  .plan .name{font-family:var(--disp);font-size:17px;font-weight:600;letter-spacing:-.2px;word-break:break-word}
+  .plan .stat{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:4px}
+  .plan .pc-dots{display:flex;gap:6px;margin-top:9px;align-items:center}
+  .plan .pc-dots .cdot{width:6px;height:6px;border-radius:50%}
+  .plan .pc-dots .empty-tag{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.5px}
+  .plan .edit{color:var(--faint);padding:3px 4px;display:flex;align-items:center}
+  .plan .edit svg{width:15px;height:15px;display:block}
+  .plan .edit:active{color:var(--accent)}
+  .plan .del{color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
+  .plan .del:active{color:var(--rose)}
+  .plan-start{width:100%;margin-top:12px;background:var(--accent-wash);border:1px solid var(--line-strong);
+    color:var(--accent);padding:11px;border-radius:9px;font-size:12.5px;font-family:var(--mono);letter-spacing:.4px}
+  .plan-start:active{background:var(--accent);color:var(--on-accent)}
+  .plan-start:disabled{opacity:.4;color:var(--faint);background:transparent}
+  .plan-new{margin-top:4px}
+
+  /* plan builder */
+  .plan-editor{border:1px dashed var(--line-strong);border-radius:10px;padding:14px}
+  .plan-editor .pe-label{font-family:var(--mono);font-size:10px;letter-spacing:.6px;
+    color:var(--faint);text-transform:uppercase;margin:6px 0 8px}
+  .plan-item{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .plan-item .pi-fields{flex:1;display:grid;grid-template-columns:1fr;gap:6px;min-width:0}
+  .plan-item .pi-sub-wrap:empty{display:none}
+  .plan-item select,.plan-item input{width:100%;background:var(--bg);border:1px solid var(--line-strong);
+    color:var(--ink);border-radius:8px;padding:9px 10px;font-family:var(--mono);font-size:13px}
+  .plan-item select:focus,.plan-item input:focus{outline:none;border-color:var(--accent)}
+  .plan-item .pi-rm{color:var(--faint);font-size:17px;padding:4px 6px;flex-shrink:0}
+  .plan-item .pi-rm:active{color:var(--rose)}
+  .pe-empty{font-family:var(--mono);font-size:11.5px;color:var(--faint);padding:2px 0 8px}
+  .plan-editor .pe-additem{margin-bottom:4px}
+
   /* session summary footer */
   .summary{
     position:fixed;left:0;right:0;bottom:0;z-index:30;
@@ -398,6 +434,14 @@
   <button class="fab" id="fab"><span class="plus">+</span> start session</button>
 </section>
 
+<!-- ============ PLANS (workout templates) ============ -->
+<section class="view" id="plansView">
+  <header>
+    <h2 class="page-title">plans</h2>
+  </header>
+  <div id="plans"></div>
+</section>
+
 <!-- ============ SESSION detail (drill-in from log) ============ -->
 <section class="view" id="sessionView">
   <header>
@@ -441,7 +485,7 @@
       <input type="file" id="importFile" accept="application/json,.json">
       <p class="set-note">everything is stored locally on this device. export regularly to keep a backup.</p>
       <button class="set-item danger" id="resetBtn">
-        <div><div>reset data</div><div class="si-desc">permanently erase all sessions &amp; supplements</div></div>
+        <div><div>reset data</div><div class="si-desc">permanently erase all sessions, plans &amp; supplements</div></div>
         <span class="chev">⨯</span>
       </button>
     </div>
@@ -502,6 +546,10 @@
         <p><b>exercises by category</b> — how many entries fell into each category, the bar showing that category's share of your busiest one.</p>
         <p><b>records</b> — the single heaviest set ever logged for each exercise, with the day you first hit it, grouped by category. tap to expand.</p>
 
+        <h4>plans</h4>
+        <p>a <b>plan</b> is a reusable workout template — a name and a list of exercises, each filed under a category (with a subtype where the category has one). build and edit them on the plans tab; they hold no sets or weights, just the shape of the session.</p>
+        <p>tap <b>start session from this</b> on a plan and its exercises drop into <b>today's</b> session, ready for you to fill in reps and weight. if today already has a session, the plan's exercises are added to it. plans are never changed by logging, and they ride along in your json backup.</p>
+
         <h4>supplements</h4>
         <p>logged per day on the supps tab, then summarised on the dashboard: every supplement you've ever logged, with how many separate days you took it and the running total (shown in whichever unit you use most for it), ranked by days taken.</p>
 
@@ -530,6 +578,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg>
     <span>log</span>
   </button>
+  <button class="nav-btn" data-tab="plans">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg>
+    <span>plans</span>
+  </button>
   <button class="nav-btn" data-tab="stack">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-40 12 12)"><rect x="4.5" y="9" width="15" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></g></svg>
     <span>supps</span>
@@ -557,12 +609,16 @@ const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
 let db;
 function openDB(){
   return new Promise((res,rej)=>{
-    const r = indexedDB.open('split-tracker',3);
+    const r = indexedDB.open('split-tracker',4);
     r.onupgradeneeded = e=>{
       const d = e.target.result;
       if(!d.objectStoreNames.contains('entries')){
         const s = d.createObjectStore('entries',{keyPath:'id'});
         s.createIndex('date','date');
+      }
+      // workout templates (plans): {id,name,items:[{cat,sub?,name}],ts}
+      if(!d.objectStoreNames.contains('plans')){
+        d.createObjectStore('plans',{keyPath:'id'});
       }
       // legacy stores (v2 "stack" model) — kept so old data can be migrated
       if(!d.objectStoreNames.contains('supps')){
@@ -590,12 +646,18 @@ function sstore(name,mode){return db.transaction(name,mode).objectStore(name);}
 function putLog(o){return new Promise((res,rej)=>{const r=sstore('suppLog','readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
 function delLog(id){return new Promise((res,rej)=>{const r=sstore('suppLog','readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
 function allLog(){return new Promise((res,rej)=>{const r=sstore('suppLog','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
+/* workout templates */
+function putPlan(o){return new Promise((res,rej)=>{const r=sstore('plans','readwrite').put(o);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function delPlan(id){return new Promise((res,rej)=>{const r=sstore('plans','readwrite').delete(id);r.onsuccess=res;r.onerror=e=>rej(e.target.error);});}
+function allPlans(){return new Promise((res,rej)=>{const r=sstore('plans','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
 /* legacy v2 "stack" stores — read-only, used once for migration */
 function allSupps(){return new Promise((res,rej)=>{const r=sstore('supps','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
 function allTakes(){return new Promise((res,rej)=>{const r=sstore('suppTakes','readonly').getAll();r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
 
 /* ---------- state ---------- */
 let entries = [];
+let plans = [];                   // workout templates: {id,name,items:[{cat,sub?,name}],ts}
+let planEditor = null;            // working draft while creating/editing a plan, else null
 let suppLog = [];                 // per-day supplement entries: {id,date,name,dose,ts}
 let stackDate = null;             // day shown on the supplements tab
 let suppEditing = new Set();      // suppLog entry ids currently being edited
@@ -674,6 +736,7 @@ function cardioEffort(it){
 const views = {
   home: document.getElementById('homeView'),
   log: document.getElementById('logView'),
+  plans: document.getElementById('plansView'),
   stack: document.getElementById('stackView'),
   settings: document.getElementById('settingsView'),
 };
@@ -689,6 +752,7 @@ function switchTab(tab){
   window.scrollTo(0,0);
   if(tab==='home') renderDashboard();
   else if(tab==='log') renderLog();
+  else if(tab==='plans'){planEditor=null;renderPlans();}
   else if(tab==='stack'){stackDate=todayStr();suppFormOpen=false;suppEditing=new Set();renderSupps();}
 }
 document.querySelectorAll('.nav-btn').forEach(b=>{ b.onclick=()=>switchTab(b.dataset.tab); });
@@ -1005,6 +1069,192 @@ function renderLog(){
 
 /* start session: if today already exists, open it; else create fresh */
 document.getElementById('fab').onclick=()=>openSession(todayStr());
+
+/* ---------- PLANS (workout templates) rendering ---------- */
+function planCats(plan){return CATS.filter(c=>plan.items.some(it=>it.cat===c.id));}
+
+function renderPlans(){
+  const host=document.getElementById('plans');
+  host.innerHTML='';
+
+  // create/edit mode replaces the list with the builder
+  if(planEditor){
+    host.appendChild(buildPlanEditor(planEditor));
+    return;
+  }
+
+  const sorted=[...plans].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(sorted.length===0){
+    const empty=document.createElement('div');
+    empty.className='home-empty';
+    empty.innerHTML=`no plans yet.<br><b>build a template to reuse your go-to workouts.</b>`;
+    host.appendChild(empty);
+  }else{
+    sorted.forEach(p=>host.appendChild(planCard(p)));
+  }
+
+  const add=document.createElement('button');
+  add.className='add-trigger plan-new';
+  add.textContent='+ new plan';
+  add.onclick=()=>{planEditor={id:null,name:'',items:[]};renderPlans();};
+  host.appendChild(add);
+}
+
+function planCard(plan){
+  const el=document.createElement('div');
+  el.className='plan';
+  const n=plan.items.length;
+  const dots=planCats(plan).map(c=>`<span class="cdot" style="background:${c.color}"></span>`).join('')
+    || '<span class="empty-tag">no exercises</span>';
+  el.innerHTML=`
+    <div class="plan-top">
+      <div class="ebody">
+        <div class="name">${escapeHtml(plan.name)}</div>
+        <div class="stat">${n} exercise${n!==1?'s':''}</div>
+        <div class="pc-dots">${dots}</div>
+      </div>
+      <div class="eactions">
+        <button class="edit" aria-label="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5l4 4"/><path d="M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg></button>
+        <button class="del" aria-label="delete">×</button>
+      </div>
+    </div>
+    <button class="plan-start">▸ start session from this</button>`;
+  el.querySelector('.edit').onclick=()=>{
+    planEditor={id:plan.id,name:plan.name,items:plan.items.map(it=>({...it}))};
+    renderPlans();
+  };
+  el.querySelector('.del').onclick=async()=>{
+    if(!confirm(`Delete the “${plan.name}” plan? This won't touch any logged sessions.`))return;
+    await delPlan(plan.id);
+    plans=plans.filter(x=>x.id!==plan.id);
+    renderPlans();
+  };
+  const startBtn=el.querySelector('.plan-start');
+  startBtn.disabled=(n===0);
+  startBtn.onclick=()=>startFromPlan(plan);
+  return el;
+}
+
+/* build a new session (on today) prefilled with a plan's exercises */
+async function startFromPlan(plan){
+  if(plan.items.length===0)return;
+  const date=todayStr();
+  const existing=dayEntries(date).length;
+  const msg = existing
+    ? `Today already has ${existing} exercise${existing!==1?'s':''} logged. Add ${plan.items.length} more from “${plan.name}”?`
+    : `Start today's session with the ${plan.items.length} exercise${plan.items.length!==1?'s':''} from “${plan.name}”?`;
+  if(!confirm(msg))return;
+  for(const it of plan.items){
+    const cat=CAT_MAP[it.cat];
+    if(!cat)continue;
+    const obj={id:uid(),date,cat:it.cat,name:it.name,ts:Date.now()};
+    if(cat.sub&&it.sub)obj.sub=it.sub;
+    if(cat.kind==='cardio'){obj.distance='';obj.time='';}
+    else obj.sets=[{reps:'',weight:''}];
+    await putEntry(obj);
+    entries.push(obj);
+  }
+  openSession(date);
+  // expand the categories the plan populated so the prefilled work is visible
+  openGroups=new Set(plan.items.map(it=>it.cat));
+  renderSession();
+}
+
+/* the plan builder — holds its own working DOM state, like buildEntryForm */
+function buildPlanEditor(draft){
+  const wrap=document.createElement('div');
+  wrap.className='plan-editor';
+  wrap.innerHTML=`
+    <div class="field"><label>Plan name</label>
+      <input class="pe-name" placeholder="e.g. push day" autocomplete="off" value="${escapeHtml(draft.name||'')}"></div>
+    <div class="pe-label">exercises</div>
+    <div class="pe-items"></div>
+    <button class="addset pe-additem">+ add exercise</button>
+    <div class="add-actions">
+      <button class="btn-save pe-save">${draft.id?'Update plan':'Save plan'}</button>
+      <button class="btn-cancel pe-cancel">Cancel</button>
+    </div>`;
+  const itemsHost=wrap.querySelector('.pe-items');
+  let rows=[];
+
+  const updateEmpty=()=>{
+    let hint=wrap.querySelector('.pe-empty');
+    if(rows.length===0){
+      if(!hint){
+        hint=document.createElement('div');
+        hint.className='pe-empty';
+        hint.textContent='no exercises yet — add at least one.';
+        itemsHost.appendChild(hint);
+      }
+    }else if(hint){hint.remove();}
+  };
+
+  const addRow=(item={cat:CATS[0].id,sub:null,name:''})=>{
+    const row=document.createElement('div');
+    row.className='plan-item';
+    const catOpts=CATS.map(c=>`<option value="${c.id}"${item.cat===c.id?' selected':''}>${c.name}</option>`).join('');
+    row.innerHTML=`
+      <div class="pi-fields">
+        <select class="pi-cat">${catOpts}</select>
+        <span class="pi-sub-wrap"></span>
+        <input class="pi-name" placeholder="exercise" autocomplete="off" value="${escapeHtml(item.name||'')}">
+      </div>
+      <button class="pi-rm" aria-label="remove">×</button>`;
+    const catSel=row.querySelector('.pi-cat');
+    const subWrap=row.querySelector('.pi-sub-wrap');
+    const paintSub=selected=>{
+      const cat=CAT_MAP[catSel.value];
+      if(cat.sub){
+        subWrap.innerHTML=`<select class="pi-sub">`+
+          cat.sub.map(s=>`<option${selected===s?' selected':''}>${s}</option>`).join('')+`</select>`;
+      }else subWrap.innerHTML='';
+    };
+    paintSub(item.sub);
+    catSel.onchange=()=>paintSub(null);
+    row.querySelector('.pi-rm').onclick=()=>{
+      row.remove();
+      rows=rows.filter(r=>r!==row);
+      updateEmpty();
+    };
+    itemsHost.appendChild(row);
+    rows.push(row);
+    updateEmpty();
+  };
+
+  (draft.items&&draft.items.length?draft.items:[]).forEach(addRow);
+  updateEmpty();
+  wrap.querySelector('.pe-additem').onclick=()=>addRow();
+  wrap.querySelector('.pe-cancel').onclick=()=>{planEditor=null;renderPlans();};
+
+  wrap.querySelector('.pe-save').onclick=async()=>{
+    const nameInput=wrap.querySelector('.pe-name');
+    const name=nameInput.value.trim();
+    if(!name){nameInput.focus();return;}
+    const items=rows.map(r=>{
+      const cat=r.querySelector('.pi-cat').value;
+      const nm=r.querySelector('.pi-name').value.trim();
+      if(!nm)return null;
+      const o={cat,name:nm};
+      const subSel=r.querySelector('.pi-sub');
+      if(subSel)o.sub=subSel.value;
+      return o;
+    }).filter(Boolean);
+    if(items.length===0){alert('Add at least one exercise (with a name) before saving.');return;}
+    const obj={
+      id: draft.id||uid(),
+      name,
+      items,
+      ts: draft.id ? (plans.find(p=>p.id===draft.id)?.ts||Date.now()) : Date.now(),
+    };
+    await putPlan(obj);
+    const i=plans.findIndex(p=>p.id===obj.id);
+    if(i>=0)plans[i]=obj;else plans.push(obj);
+    planEditor=null;
+    renderPlans();
+  };
+
+  return wrap;
+}
 
 /* ---------- SUPPLEMENTS rendering (per-day log) ---------- */
 function relDayLabel(d){
@@ -1363,7 +1613,7 @@ sDatePick.onchange=async()=>{
 
 /* ---------- export / import ---------- */
 document.getElementById('exportBtn').onclick=()=>{
-  const payload={app:'tally',version:3,exportedAt:new Date().toISOString(),count:entries.length,entries,suppLog};
+  const payload={app:'tally',version:4,exportedAt:new Date().toISOString(),count:entries.length,entries,plans,suppLog};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1397,6 +1647,27 @@ importFile.onchange=()=>{
       await putEntry(clean);
     }
     entries=[...existing.values()];
+
+    // workout templates (plans), if present
+    let plansAdded=0;
+    const planMap=new Map(plans.map(p=>[p.id,p]));
+    if(Array.isArray(data.plans)){
+      for(const raw of data.plans){
+        if(!raw||typeof raw!=='object'||!raw.id||!Array.isArray(raw.items))continue;
+        const items=raw.items
+          .filter(it=>it&&typeof it==='object'&&it.cat&&CAT_MAP[String(it.cat)])
+          .map(it=>{
+            const o={cat:String(it.cat),name:String(it.name||'')};
+            if(it.sub)o.sub=String(it.sub);
+            return o;
+          });
+        const clean={id:String(raw.id),name:String(raw.name||'untitled'),items,ts:raw.ts||Date.now()};
+        if(!planMap.has(clean.id))plansAdded++;
+        planMap.set(clean.id,clean);
+        await putPlan(clean);
+      }
+      plans=[...planMap.values()];
+    }
 
     // supplement log (per-day entries), if present
     let suppsAdded=0;
@@ -1434,8 +1705,10 @@ importFile.onchange=()=>{
 
     importFile.value='';
     renderLog();renderDashboard();
+    if(activeTab==='plans'){planEditor=null;renderPlans();}
     const suppNote = suppsAdded ? ` · ${suppsAdded} supplement${suppsAdded!==1?'s':''}` : '';
-    alert(`Import complete — ${added} added, ${updated} updated${suppNote}.`);
+    const planNote = plansAdded ? ` · ${plansAdded} plan${plansAdded!==1?'s':''}` : '';
+    alert(`Import complete — ${added} added, ${updated} updated${suppNote}${planNote}.`);
   };
   reader.readAsText(file);
 };
@@ -1447,12 +1720,12 @@ function clearStore(name){return new Promise((res,rej)=>{
   r.onsuccess=res;r.onerror=e=>rej(e.target.error);
 });}
 document.getElementById('resetBtn').onclick=async()=>{
-  if(!confirm('Erase ALL data on this device? This deletes every session and supplement entry and cannot be undone.'))return;
+  if(!confirm('Erase ALL data on this device? This deletes every session, plan and supplement entry and cannot be undone.'))return;
   if(!confirm('Are you sure? Consider exporting a backup first. This is permanent.'))return;
   try{
-    await Promise.all(['entries','suppLog','supps','suppTakes'].map(clearStore));
+    await Promise.all(['entries','suppLog','plans','supps','suppTakes'].map(clearStore));
   }catch(e){alert('Could not clear all data — please try again.');return;}
-  entries=[];suppLog=[];
+  entries=[];suppLog=[];plans=[];planEditor=null;
   stackDate=todayStr();suppEditing=new Set();suppFormOpen=false;
   editing=new Set();openGroups=new Set();formOpen=new Set();
   renderLog();renderDashboard();
@@ -1488,6 +1761,7 @@ function fmtDate(d){
 (async function(){
   await openDB();
   entries=await allEntries();
+  plans=await allPlans();
   suppLog=await allLog();
   // one-time migration of legacy v2 "stack" data into the per-day log
   if(suppLog.length===0){
