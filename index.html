@@ -333,22 +333,38 @@
     font-family:var(--mono);font-size:10px;letter-spacing:.9px;
     color:var(--faint);text-transform:uppercase;margin:4px 0 11px}
   .pe-label .pe-count{color:var(--accent);font-weight:700}
-  .pe-items{display:flex;flex-direction:column;gap:11px;margin-bottom:13px}
+  .pe-items{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
   .plan-item{position:relative;background:var(--panel-2);border:1px solid var(--line);
-    border-left:3px solid var(--line-strong);border-radius:11px;padding:13px}
-  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .pi-idx{width:23px;height:23px;flex-shrink:0;border-radius:50%;background:var(--bg);
-    border:1px solid var(--line-strong);color:var(--dim);font-family:var(--mono);font-size:11px;
-    font-weight:700;display:flex;align-items:center;justify-content:center}
-  .pi-head .pi-cat{flex:1}
-  .pi-rm{color:var(--faint);font-size:19px;line-height:1;padding:3px 7px;flex-shrink:0;border-radius:7px}
+    border-left:3px solid var(--line-strong);border-radius:10px;overflow:hidden;
+    transition:border-color .12s,box-shadow .12s,opacity .12s}
+  .plan-item.dragging{border-color:var(--accent);box-shadow:0 10px 24px rgba(0,0,0,.6);opacity:.96}
+  /* collapsed bar: handle + name + expand + remove */
+  .pi-bar{display:flex;align-items:center;gap:8px;padding:7px 8px 7px 5px}
+  .pi-drag{flex-shrink:0;color:var(--faint);padding:5px 3px;display:flex;align-items:center;
+    cursor:grab;touch-action:none}
+  .pi-drag:active{cursor:grabbing;color:var(--dim)}
+  .pi-drag svg{width:18px;height:18px;display:block}
+  .pi-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--line-strong)}
+  .pi-name{flex:1;min-width:0;background:transparent;border:none;
+    border-bottom:1px solid transparent;color:var(--ink);
+    font-family:var(--mono);font-size:13.5px;padding:6px 2px}
+  .pi-name:focus{outline:none;border-bottom-color:var(--line-strong)}
+  .pi-name::placeholder{color:var(--faint)}
+  .pi-expand{flex-shrink:0;color:var(--faint);padding:5px;display:flex;align-items:center;
+    border-radius:6px;transition:transform .18s ease,color .12s}
+  .pi-expand svg{width:17px;height:17px;display:block}
+  .plan-item.open .pi-expand{transform:rotate(180deg);color:var(--accent)}
+  .pi-rm{flex-shrink:0;color:var(--faint);font-size:18px;line-height:1;padding:4px 7px;border-radius:6px}
   .pi-rm:active{color:var(--rose);background:var(--bg)}
-  .pi-sub-wrap{margin-bottom:9px}
-  .pi-sub-wrap:empty{display:none}
-  .plan-item select,.plan-item input{width:100%;background:var(--bg);border:1px solid var(--line-strong);
-    color:var(--ink);border-radius:8px;padding:10px 11px;font-family:var(--mono);font-size:13px}
-  .plan-item select:focus,.plan-item input:focus{outline:none;border-color:var(--accent)}
-  .plan-item .pi-name::placeholder{color:var(--faint)}
+  /* expanded detail: type + subtype dropdowns */
+  .pi-detail{display:none;gap:9px;padding:0 11px 12px 12px}
+  .plan-item.open .pi-detail{display:flex}
+  .pi-field{flex:1;min-width:0}
+  .pi-field label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--faint);margin:0 0 5px 2px}
+  .pi-detail select{width:100%;background:var(--bg);border:1px solid var(--line-strong);
+    color:var(--ink);border-radius:8px;padding:9px 10px;font-family:var(--mono);font-size:12.5px}
+  .pi-detail select:focus{outline:none;border-color:var(--accent)}
   .pe-empty{font-family:var(--mono);font-size:11.5px;color:var(--faint);
     text-align:center;padding:16px 0;border:1px dashed var(--line-strong);border-radius:11px}
   .pe-additem{width:100%;background:transparent;border:1.5px dashed var(--line-strong);
@@ -1261,65 +1277,106 @@ function buildPlanEditor(draft){
   const countEl=wrap.querySelector('.pe-count');
   let rows=[];
 
-  // keep index badges + count in sync, and show an empty hint when there are none
+  // sync the count + empty hint; row order always follows the live DOM
+  const domRows=()=>[...itemsHost.querySelectorAll('.plan-item')];
   const refresh=()=>{
+    rows=domRows();
     countEl.textContent=rows.length;
-    rows.forEach((r,i)=>{const b=r.querySelector('.pi-idx');if(b)b.textContent=i+1;});
     let hint=wrap.querySelector('.pe-empty');
     if(rows.length===0){
       if(!hint){
         hint=document.createElement('div');
         hint.className='pe-empty';
-        hint.textContent='no exercises yet — add at least one.';
+        hint.textContent='no exercises yet — add one below.';
         itemsHost.appendChild(hint);
       }
     }else if(hint){hint.remove();}
   };
 
-  const addRow=(item={cat:CATS[0].id,sub:null,name:''})=>{
+  // pointer-based drag reorder from the grip handle (works with touch + mouse)
+  const attachDrag=(handle,row)=>{
+    handle.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      row.classList.add('dragging');
+      row.classList.remove('open');
+      const move=ev=>{
+        const y=ev.clientY;
+        const others=domRows().filter(r=>r!==row);
+        let ref=null;
+        for(const s of others){
+          const b=s.getBoundingClientRect();
+          if(y < b.top + b.height/2){ref=s;break;}
+        }
+        if(ref)itemsHost.insertBefore(row,ref);
+        else itemsHost.appendChild(row);
+      };
+      const up=()=>{
+        row.classList.remove('dragging');
+        document.removeEventListener('pointermove',move);
+        document.removeEventListener('pointerup',up);
+        document.removeEventListener('pointercancel',up);
+        refresh();
+      };
+      document.addEventListener('pointermove',move);
+      document.addEventListener('pointerup',up);
+      document.addEventListener('pointercancel',up);
+    });
+  };
+
+  const addRow=(item={cat:CATS[0].id,sub:null,name:''},open=false)=>{
     const row=document.createElement('div');
-    row.className='plan-item';
+    row.className='plan-item'+(open?' open':'');
     const catOpts=CATS.map(c=>`<option value="${c.id}"${item.cat===c.id?' selected':''}>${c.name}</option>`).join('');
     row.innerHTML=`
-      <div class="pi-head">
-        <span class="pi-idx"></span>
-        <select class="pi-cat">${catOpts}</select>
+      <div class="pi-bar">
+        <button class="pi-drag" aria-label="drag to reorder" title="drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
+        <span class="pi-dot"></span>
+        <input class="pi-name" placeholder="exercise name" autocomplete="off" value="${escapeHtml(item.name||'')}">
+        <button class="pi-expand" aria-label="type & subtype"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
         <button class="pi-rm" aria-label="remove">×</button>
       </div>
-      <span class="pi-sub-wrap"></span>
-      <input class="pi-name" placeholder="exercise name" autocomplete="off" value="${escapeHtml(item.name||'')}">`;
+      <div class="pi-detail">
+        <div class="pi-field"><label>type</label><select class="pi-cat">${catOpts}</select></div>
+        <div class="pi-field pi-sub-wrap"></div>
+      </div>`;
+    const dot=row.querySelector('.pi-dot');
     const catSel=row.querySelector('.pi-cat');
     const subWrap=row.querySelector('.pi-sub-wrap');
     const paintCat=selected=>{
       const cat=CAT_MAP[catSel.value];
-      row.style.borderLeftColor=cat?cat.color:'var(--line-strong)';
+      const col=cat?cat.color:'var(--line-strong)';
+      row.style.borderLeftColor=col;
+      dot.style.background=col;
       if(cat&&cat.sub){
-        subWrap.innerHTML=`<select class="pi-sub">`+
+        subWrap.style.display='';
+        subWrap.innerHTML=`<label>subtype</label><select class="pi-sub">`+
           cat.sub.map(s=>`<option${selected===s?' selected':''}>${s}</option>`).join('')+`</select>`;
-      }else subWrap.innerHTML='';
+      }else{subWrap.style.display='none';subWrap.innerHTML='';}
     };
     paintCat(item.sub);
     catSel.onchange=()=>paintCat(null);
-    row.querySelector('.pi-rm').onclick=()=>{
-      row.remove();
-      rows=rows.filter(r=>r!==row);
-      refresh();
-    };
+    row.querySelector('.pi-expand').onclick=()=>row.classList.toggle('open');
+    row.querySelector('.pi-rm').onclick=()=>{row.remove();refresh();};
+    attachDrag(row.querySelector('.pi-drag'),row);
     itemsHost.appendChild(row);
-    rows.push(row);
     refresh();
+    return row;
   };
 
-  (draft.items&&draft.items.length?draft.items:[]).forEach(addRow);
+  (draft.items&&draft.items.length?draft.items:[]).forEach(it=>addRow(it));
   refresh();
-  wrap.querySelector('.pe-additem').onclick=()=>addRow();
+  wrap.querySelector('.pe-additem').onclick=()=>{
+    const row=addRow(undefined,true);
+    row.scrollIntoView({block:'nearest'});
+    row.querySelector('.pi-name').focus();
+  };
   wrap.querySelector('.pe-cancel').onclick=()=>{planEditor=null;renderPlans();};
 
   wrap.querySelector('.pe-save').onclick=async()=>{
     const nameInput=wrap.querySelector('.pe-name');
     const name=nameInput.value.trim();
     if(!name){nameInput.focus();return;}
-    const items=rows.map(r=>{
+    const items=domRows().map(r=>{
       const cat=r.querySelector('.pi-cat').value;
       const nm=r.querySelector('.pi-name').value.trim();
       if(!nm)return null;
