@@ -569,6 +569,15 @@
     </div>
 
     <div class="set-sec">
+      <div class="set-sec-title">units</div>
+      <div class="seg" id="unitSeg">
+        <button data-u="imperial">imperial</button>
+        <button data-u="metric">metric</button>
+      </div>
+      <p class="set-note">imperial shows lift in <b>lb</b> and cardio in <b>ft</b>; metric shows lift in <b>kg</b> and cardio in <b>m</b>. you can still log in either unit — type “kg”, “lb”, “km”, or “mi” and tally converts to your preference.</p>
+    </div>
+
+    <div class="set-sec">
       <div class="set-sec-title">install app</div>
       <button class="set-item install" id="installBtn" hidden>+ install to home screen</button>
       <div class="instr">
@@ -597,7 +606,7 @@
       <div class="set-sec-title">how tally works</div>
       <div class="guide">
         <h4>logging</h4>
-        <p>a <b>session</b> is everything you log on one date. each <b>entry</b> in it is one exercise, filed under a category. strength entries hold <b>sets</b> — reps × weight, in lb; cardio entries hold a <b>distance</b> and/or a <b>time</b>. change a session's date to move it in the log.</p>
+        <p>a <b>session</b> is everything you log on one date. each <b>entry</b> in it is one exercise, filed under a category. strength entries hold <b>sets</b> — reps × weight; cardio entries hold a <b>distance</b> and/or a <b>time</b>. change a session's date to move it in the log.</p>
         <p>there are four categories, each with its own colour:
           <span class="dot" style="background:#6ea8fe"></span> <b>cardio</b>,
           <span class="dot" style="background:#f0894a"></span> <b>core</b>,
@@ -607,11 +616,11 @@
         <h4>lift — your strength work</h4>
         <p>lift volume is the total weight you moved:</p>
         <p class="f">lift volume = sum of (reps × weight)</p>
-        <p>added up across every set in view. a set missing its reps or its weight is skipped. it's measured in lb and always drawn in <span style="color:var(--accent)">lime</span>.</p>
+        <p>added up across every set in view. a set missing its reps or its weight is skipped. it shows in <b>lb</b> or <b>kg</b> depending on your <b>units</b> setting, and is always drawn in <span style="color:var(--accent)">lime</span>. weight is entered in your chosen unit — or type <b>kg</b> / <b>lb</b> on any set to log the other one.</p>
 
         <h4>cardio — your conditioning work</h4>
-        <p>a distance is read as kilometres (miles are converted, ×1.609); a time is read as minutes, and it accepts plain <b>45</b>, <b>28 min</b>, <b>1 h</b>, or <b>1:05:00</b>. your cardio score is simply how far you went, in <b>metres</b>:</p>
-        <p class="f">from distance: m = km × 1000<br>from time: m = min × 167 &nbsp;(a 6 min/km pace)</p>
+        <p>a distance is read as kilometres, or miles when you type <b>mi</b> (converted, ×1.609); a time is read as minutes, and it accepts plain <b>45</b>, <b>28 min</b>, <b>1 h</b>, or <b>1:05:00</b>. your cardio score is simply how far you went, shown in <b>metres</b> (metric) or <b>feet</b> (imperial) to match your <b>units</b> setting:</p>
+        <p class="f">from distance: m = km × 1000<br>from time: m = min × 167 &nbsp;(a 6 min/km pace)<br>then ×3.281 if shown in feet</p>
         <p>if you log <b>both</b> distance and time, the two are averaged; if you log only one, that one stands alone. a time on its own is scored as the distance you'd cover at a steady 6&nbsp;min/km pace. it's always drawn in <span style="color:var(--c-cardio)">blue</span>.</p>
 
         <h4>the log tab</h4>
@@ -745,6 +754,9 @@ let openGroups = new Set();
 let formOpen = new Set();
 let editing = new Set();          // entry ids currently being edited
 let activeTab = 'home';
+/* unit preference: 'imperial' (lb / ft) or 'metric' (kg / m). default imperial,
+   which keeps the historical meaning of unit-less logged numbers (lb, km). */
+let unitSystem = localStorage.getItem('tally.units')==='metric' ? 'metric' : 'imperial';
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function shiftDate(base,delta){const dt=new Date(base+'T00:00:00');dt.setDate(dt.getDate()+delta);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
 function daysBetween(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
@@ -763,8 +775,33 @@ function currentStreak(){
   while(dates.has(cur)){n++;cur=shiftDate(cur,-1);}
   return n;
 }
+/* ---------- units ---------- */
+/* Everything is stored & scored canonically (weight in lb, distance in km, cardio
+   effort in metres); we convert to the user's chosen system only when displaying. */
+const LB_PER_KG=2.20462, FT_PER_M=3.28084;
+function isMetric(){return unitSystem==='metric';}
+function wtUnit(){return isMetric()?'kg':'lb';}       // lift / weight display unit
+function cardioUnit(){return isMetric()?'m':'ft';}    // cardio score display unit
+function dispWt(lb){return isMetric()?lb/LB_PER_KG:lb;}   // canonical lb -> preferred
+function dispCardio(m){return isMetric()?m:m*FT_PER_M;}   // canonical m  -> preferred
+/* read a weight like "225", "100 kg", "185 lb" -> lb (or NaN). A bare number is
+   read as lb — the historical unit — so old logs stay put; new logs are tagged on save. */
+function parseWeightLb(str){
+  if(str==null||str==='')return NaN;
+  const m=String(str).match(/(-?\d+(?:\.\d+)?)\s*(kg|kgs|kilo|kilos|kilogram|kilograms|lb|lbs|pound|pounds|#)?/i);
+  if(!m)return NaN;
+  const val=parseFloat(m[1]);if(isNaN(val))return NaN;
+  const u=(m[2]||'').toLowerCase();
+  return (u.startsWith('kg')||u.startsWith('kilo')) ? val*LB_PER_KG : val;
+}
+/* format a canonical-lb weight in the preferred unit (no unit suffix) */
+function fmtWt(lb){const v=dispWt(lb);return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v*10)/10);}
+/* tag a bare logged value with the current system's unit so a later system
+   switch can't silently reinterpret it (a value with a unit is left untouched). */
+function normWeightInput(raw){const s=(raw||'').trim();return (isMetric()&&/^-?\d+(?:\.\d+)?$/.test(s))?s+' kg':s;}
+function normDistInput(raw){const s=(raw||'').trim();return (!isMetric()&&/^-?\d+(?:\.\d+)?$/.test(s))?s+' mi':s;}
 function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));}
-function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
+function sessionVolume(date){let v=0;dayEntries(date).forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseWeightLb(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});});return v;}
 function sessionEffort(date){let e=0;dayEntries(date).forEach(it=>{if(it.cat==='cardio')e+=cardioEffort(it);});return e;}
 
 /* ---------- cardio effort ---------- */
@@ -860,7 +897,7 @@ function rangeCut(range){
 /* records — the best (heaviest) weight ever lifted for each exercise and the day
    it was hit, grouped by category in log order. Collapsible, default closed. */
 let recordsOpen=false;
-function recRow(w){const n=parseFloat(w);return isNaN(n)?null:n;}
+function recRow(w){const n=parseWeightLb(w);return isNaN(n)?null:n;}
 function fmtRecDate(d){return new Date(d+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}
 function recordsCard(){
   if(!entries.length)return '';
@@ -891,7 +928,7 @@ function recordsCard(){
       ${g.items.map(r=>`
         <div class="rec-row">
           <span class="rec-name">${escapeHtml(r.name)}</span>
-          <span class="rec-val">${String(r.weight)}<span class="rec-u"> lb</span></span>
+          <span class="rec-val">${fmtWt(r.weight)}<span class="rec-u"> ${wtUnit()}</span></span>
           <span class="rec-date">${fmtRecDate(r.date)}</span>
         </div>`).join('')}
     </div>`).join('');
@@ -919,7 +956,7 @@ function bindBars(){
     let vol=0;const lifts=[];
     items.forEach(e=>{
       if(!e.sets||!e.sets.length)return;
-      let v=0;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});
+      let v=0;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseWeightLb(s.weight);if(!isNaN(r)&&!isNaN(w))v+=r*w;});
       if(v>0){vol+=v;lifts.push({name:e.name||'—',v});}
     });
     let eff=0;const cardios=[];
@@ -928,12 +965,12 @@ function bindBars(){
     if(!vol&&!eff){pop.innerHTML=head+`<div class="bp-empty">nothing logged</div>`;return;}
     let html=head;
     if(vol>0){
-      html+=`<div class="bp-head"><span class="sw vol"></span>lift<span class="bp-tot">${fmtVol(vol)} lb</span></div>`;
-      html+=lifts.sort((a,b)=>b.v-a.v).map(l=>`<div class="bp-item"><span class="bp-name">${escapeHtml(l.name)}</span><span class="bp-amt">${fmtVol(l.v)}</span></div>`).join('');
+      html+=`<div class="bp-head"><span class="sw vol"></span>lift<span class="bp-tot">${fmtVol(dispWt(vol))} ${wtUnit()}</span></div>`;
+      html+=lifts.sort((a,b)=>b.v-a.v).map(l=>`<div class="bp-item"><span class="bp-name">${escapeHtml(l.name)}</span><span class="bp-amt">${fmtVol(dispWt(l.v))}</span></div>`).join('');
     }
     if(eff>0){
-      html+=`<div class="bp-head"><span class="sw eff"></span>cardio<span class="bp-tot">${fmtVol(eff)}</span></div>`;
-      html+=cardios.sort((a,b)=>b.e-a.e).map(c=>`<div class="bp-item"><span class="bp-name">${escapeHtml(c.name)}</span><span class="bp-amt">${fmtVol(c.e)}</span></div>`).join('');
+      html+=`<div class="bp-head"><span class="sw eff"></span>cardio<span class="bp-tot">${fmtVol(dispCardio(eff))} ${cardioUnit()}</span></div>`;
+      html+=cardios.sort((a,b)=>b.e-a.e).map(c=>`<div class="bp-item"><span class="bp-name">${escapeHtml(c.name)}</span><span class="bp-amt">${fmtVol(dispCardio(c.e))}</span></div>`).join('');
     }
     pop.innerHTML=html;
   };
@@ -1049,10 +1086,10 @@ function renderDashboard(){
   const dates=[...new Set(inRange.map(e=>e.date))].sort().reverse();
   const totalSessions=dates.length;
   let totalVol=0;
-  inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
+  inRange.forEach(e=>{e.sets&&e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseWeightLb(s.weight);if(!isNaN(r)&&!isNaN(w))totalVol+=r*w;});});
 
   const recent=dates.slice(0,8).reverse();
-  const vols=recent.map(d=>({d,v:sessionVolume(d),e:sessionEffort(d)}));
+  const vols=recent.map(d=>({d,v:dispWt(sessionVolume(d)),e:dispCardio(sessionEffort(d))}));
   const maxV=Math.max(1,...vols.map(x=>x.v+x.e));
   const bars=vols.map(x=>{
     const tot=x.v+x.e;
@@ -1086,8 +1123,8 @@ function renderDashboard(){
   const streak = currentStreak();
   host.innerHTML=seg+`
     <div class="kpi-grid">
-      <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
-      <div class="kpi cardio"><div class="n">${fmtVol(cardioEff)}</div><div class="l">${cardioLabel}</div></div>
+      <div class="kpi hero"><div class="n">${fmtVol(dispWt(totalVol))}<span class="u"> ${wtUnit()}</span></div><div class="l">${volLabel}</div></div>
+      <div class="kpi cardio"><div class="n">${fmtVol(dispCardio(cardioEff))}<span class="u"> ${cardioUnit()}</span></div><div class="l">${cardioLabel}</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
       <div class="kpi"><div class="n">${streak}<span class="u"> 🔥</span></div><div class="l">day streak</div></div>
     </div>
@@ -1126,8 +1163,8 @@ function renderLog(){
     card.className='card';
     const volBlock = items.length
       ? `<div class="cmetrics">
-          <div class="cvol"><div class="n">${fmtVol(vol)}</div><div class="l">lift</div></div>
-          <div class="cvol ceff"><div class="n">${fmtVol(eff)}</div><div class="l">cardio</div></div>
+          <div class="cvol"><div class="n">${fmtVol(dispWt(vol))}</div><div class="l">lift</div></div>
+          <div class="cvol ceff"><div class="n">${fmtVol(dispCardio(eff))}</div><div class="l">cardio</div></div>
         </div>`
       : `<div class="cvol"><span class="empty-tag">empty</span></div>`;
     const dots = catsHit.length
@@ -1585,11 +1622,11 @@ function entryRow(it){
     if(it.distance)bits.push(`<b>${escapeHtml(it.distance)}</b>`);
     if(it.time)bits.push(`<b>${escapeHtml(it.time)}</b>`);
     const eff=cardioEffort(it);
-    if(eff>0)bits.push(`cardio <b>${fmtVol(eff)}</b>`);
+    if(eff>0)bits.push(`cardio <b>${fmtVol(dispCardio(eff))} ${cardioUnit()}</b>`);
     statLine=bits.join(' · ')||'—';
   }else{
     const sets=it.sets||[];
-    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;if(s.weight!==''&&s.weight!=null)t+=`×<b>${escapeHtml(s.weight)}</b> lb`;return t;}).join('  ')||'—';
+    const parts=sets.map(s=>{let t=`<b>${escapeHtml(s.reps||'?')}</b>`;const wlb=parseWeightLb(s.weight);if(!isNaN(wlb))t+=`×<b>${fmtWt(wlb)}</b> ${wtUnit()}`;return t;}).join('  ')||'—';
     statLine=`${sets.length} set${sets.length!==1?'s':''} · ${parts}`;
   }
   el.innerHTML=`<div class="ebody">
@@ -1624,7 +1661,7 @@ function buildEntryForm(cat,existing,{onCancel,onDone}){
     <input class="f-name" placeholder="${cat.hint}" autocomplete="off" value="${existing?escapeHtml(existing.name):''}"></div>`;
   if(cat.kind==='cardio'){
     inner+=`<div class="row2">
-      <div class="field"><label>Distance</label><input class="f-dist" placeholder="5 km" autocomplete="off" value="${existing?escapeHtml(existing.distance||''):''}"></div>
+      <div class="field"><label>Distance</label><input class="f-dist" placeholder="${isMetric()?'5 km':'3 mi'}" autocomplete="off" value="${existing?escapeHtml(existing.distance||''):''}"></div>
       <div class="field"><label>Time</label><input class="f-time" placeholder="28 min" autocomplete="off" value="${existing?escapeHtml(existing.time||''):''}"></div>
     </div>`;
   }else{
@@ -1645,7 +1682,7 @@ function buildEntryForm(cat,existing,{onCancel,onDone}){
       line.className='setline';
       line.innerHTML=`<span class="idx">${setRows.length+1}</span>
         <input type="number" inputmode="numeric" placeholder="reps" class="s-reps" value="${escapeHtml(String(reps))}">
-        <input type="number" inputmode="decimal" placeholder="lb (opt)" class="s-wt" value="${escapeHtml(String(weight))}">
+        <input type="text" inputmode="decimal" placeholder="${wtUnit()} (opt)" class="s-wt" value="${escapeHtml(String(weight))}">
         <button class="rm">×</button>`;
       line.querySelector('.rm').onclick=()=>{
         line.remove();
@@ -1674,10 +1711,10 @@ function buildEntryForm(cat,existing,{onCancel,onDone}){
     };
     if(cat.sub)obj.sub=f.querySelector('.f-sub').value;
     if(cat.kind==='cardio'){
-      obj.distance=f.querySelector('.f-dist').value.trim();
+      obj.distance=normDistInput(f.querySelector('.f-dist').value);
       obj.time=f.querySelector('.f-time').value.trim();
     }else{
-      obj.sets=setRows.map(r=>({reps:r.querySelector('.s-reps').value.trim(),weight:r.querySelector('.s-wt').value.trim()}))
+      obj.sets=setRows.map(r=>({reps:r.querySelector('.s-reps').value.trim(),weight:normWeightInput(r.querySelector('.s-wt').value)}))
         .filter(s=>s.reps!==''||s.weight!=='');
       if(obj.sets.length===0)obj.sets=[{reps:'',weight:''}];
     }
@@ -1713,10 +1750,10 @@ function addBlock(cat){
 function renderSummary(todays){
   const ex=todays.length;
   let sets=0,vol=0;
-  todays.forEach(e=>{if(e.sets){sets+=e.sets.length;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseFloat(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;});}});
+  todays.forEach(e=>{if(e.sets){sets+=e.sets.length;e.sets.forEach(s=>{const r=parseFloat(s.reps),w=parseWeightLb(s.weight);if(!isNaN(r)&&!isNaN(w))vol+=r*w;});}});
   document.getElementById('sumEx').textContent=ex;
   document.getElementById('sumSets').textContent=sets;
-  document.getElementById('sumVol').textContent=fmtVol(vol);
+  document.getElementById('sumVol').textContent=fmtVol(dispWt(vol));
 }
 
 /* ---------- session nav / date edit ---------- */
@@ -1881,6 +1918,20 @@ installBtn.onclick=async()=>{
   installBtn.hidden=true;
 };
 window.addEventListener('appinstalled',()=>{deferredPrompt=null;installBtn.hidden=true;});
+
+/* ---------- units preference ---------- */
+function applyUnitSeg(){document.querySelectorAll('#unitSeg button').forEach(b=>b.classList.toggle('on',b.dataset.u===unitSystem));}
+document.querySelectorAll('#unitSeg button').forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.u===unitSystem)return;
+    unitSystem=b.dataset.u;
+    try{localStorage.setItem('tally.units',unitSystem);}catch(e){}
+    applyUnitSeg();
+    renderLog();renderDashboard();
+    if(sessionView.classList.contains('active')&&currentDate)renderSession();
+  };
+});
+applyUnitSeg();
 
 /* ---------- utils ---------- */
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
