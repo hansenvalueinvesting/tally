@@ -940,11 +940,12 @@ function renderDashboard(){
   const suppCard = recordsCard()+suppLifetimeCard();
 
   const volLabel = dashRange==='all' ? 'total lift' : 'lift';
+  const cardioLabel = dashRange==='all' ? 'total cardio' : 'cardio';
   const streak = currentStreak();
   host.innerHTML=seg+`
     <div class="kpi-grid">
       <div class="kpi hero"><div class="n">${fmtVol(totalVol)}<span class="u"> lb</span></div><div class="l">${volLabel}</div></div>
-      <div class="kpi cardio"><div class="n">${fmtVol(cardioEff)}</div><div class="l">cardio</div></div>
+      <div class="kpi cardio"><div class="n">${fmtVol(cardioEff)}</div><div class="l">${cardioLabel}</div></div>
       <div class="kpi"><div class="n">${totalSessions}</div><div class="l">sessions</div></div>
       <div class="kpi"><div class="n">${streak}<span class="u"> 🔥</span></div><div class="l">day streak</div></div>
     </div>
