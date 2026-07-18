@@ -304,14 +304,9 @@
   .plan .edit:active{color:var(--accent);background:var(--panel-2)}
   .plan .del{color:var(--faint);font-size:19px;line-height:1;padding:3px 7px;border-radius:8px}
   .plan .del:active{color:var(--rose);background:var(--panel-2)}
-  .pc-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
-  .pc-chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel-2);
-    border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 9px;
-    font-size:12px;color:var(--dim);max-width:100%}
-  .pc-chip .cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-  .pc-chip .pc-xname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pc-more{align-self:center;font-family:var(--mono);font-size:11px;color:var(--faint);padding-left:2px}
-  .pc-empty-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px}
+  .pc-dots{display:flex;gap:7px;align-items:center;margin-top:13px;min-height:8px}
+  .pc-dots .cdot{width:8px;height:8px;border-radius:50%}
+  .pc-empty-note{font-family:var(--mono);font-size:11px;color:var(--faint)}
   .plan-start{width:100%;margin-top:15px;background:var(--accent-wash);
     border:1px solid rgba(204,255,51,.3);color:var(--accent);
     padding:13px;border-radius:11px;font-size:12.5px;font-weight:700;font-family:var(--mono);
@@ -1191,19 +1186,10 @@ function planCard(plan){
   const el=document.createElement('div');
   el.className='plan';
   const n=plan.items.length;
-  const MAX_CHIPS=4;
-  let chips;
-  if(n===0){
-    chips=`<div class="pc-empty-note">no exercises — tap edit to add some</div>`;
-  }else{
-    const shown=plan.items.slice(0,MAX_CHIPS).map(it=>{
-      const c=CAT_MAP[it.cat];
-      const dot=c?`<span class="cdot" style="background:${c.color}"></span>`:'';
-      return `<span class="pc-chip">${dot}<span class="pc-xname">${escapeHtml(it.name||'—')}</span></span>`;
-    }).join('');
-    const extra=n>MAX_CHIPS?`<span class="pc-more">+${n-MAX_CHIPS} more</span>`:'';
-    chips=`<div class="pc-chips">${shown}${extra}</div>`;
-  }
+  // category coverage, shown as coloured dots (like the log cards)
+  const dots = n===0
+    ? `<span class="pc-empty-note">no exercises — tap edit to add some</span>`
+    : planCats(plan).map(c=>`<span class="cdot" style="background:${c.color}"></span>`).join('');
   el.innerHTML=`
     <div class="plan-top">
       <div class="pc-info">
@@ -1215,7 +1201,7 @@ function planCard(plan){
         <button class="del" aria-label="delete">×</button>
       </div>
     </div>
-    ${chips}
+    <div class="pc-dots">${dots}</div>
     <button class="plan-start">▸ start session from this</button>`;
   el.querySelector('.edit').onclick=()=>{
     planEditor={id:plan.id,name:plan.name,items:plan.items.map(it=>({...it}))};
