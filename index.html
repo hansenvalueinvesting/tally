@@ -416,7 +416,7 @@
     <div class="stats">
       <div class="stat-blk"><span class="n" id="sumEx">0</span><span class="l">exercises</span></div>
       <div class="stat-blk"><span class="n" id="sumSets">0</span><span class="l">sets</span></div>
-      <div class="stat-blk"><span class="n" id="sumVol">0</span><span class="l">volume</span></div>
+      <div class="stat-blk"><span class="n" id="sumVol">0</span><span class="l">lift</span></div>
     </div>
     <button class="done" id="doneBtn">done</button>
   </div>
@@ -482,9 +482,9 @@
           <span class="dot" style="background:#b18cff"></span> <b>upper body</b>, and
           <span class="dot" style="background:#34d3a6"></span> <b>lower body</b>.</p>
 
-        <h4>volume — your strength work</h4>
-        <p>volume is the total weight you moved:</p>
-        <p class="f">volume = sum of (reps × weight)</p>
+        <h4>lift — your strength work</h4>
+        <p>lift volume is the total weight you moved:</p>
+        <p class="f">lift volume = sum of (reps × weight)</p>
         <p>added up across every set in view. a set missing its reps or its weight is skipped. it's measured in lb and always drawn in <span style="color:var(--accent)">lime</span>.</p>
 
         <h4>cardio — your conditioning work</h4>
@@ -493,13 +493,12 @@
         <p>if you log <b>both</b> distance and time, the two are averaged; if you log only one, that one stands alone. a time on its own is scored as the distance you'd cover at a steady 6&nbsp;min/km pace. it's always drawn in <span style="color:var(--c-cardio)">blue</span>.</p>
 
         <h4>the log tab</h4>
-        <p>every session, newest first — each showing its <b>volume</b> and its <b>cardio</b> score, the exercise and set counts, and a coloured dot for every category you touched that day.</p>
+        <p>every session, newest first — each showing its <b>lift</b> and its <b>cardio</b> score, the exercise and set counts, and a coloured dot for every category you touched that day.</p>
 
         <h4>the dashboard — home</h4>
         <p>the switch up top (<b>all time · 30 days · 7 days</b>) filters everything below it to that window, counting back from today.</p>
-        <p><b>top stats</b> — total volume in the window, number of sessions (distinct days trained), average volume per session, and total sets.</p>
-        <p><b>cardio</b> — your total cardio score over the window and how many cardio sessions made it up.</p>
-        <p><b>volume + cardio chart</b> — your last 8 sessions, oldest to newest. each bar stacks volume (lime) beneath cardio (blue): its full height is that day's whole training load, and the split shows where the load came from. the bars scale to your biggest day.</p>
+        <p><b>top stats</b> — total <b>lift</b> in the window, your <b>cardio</b> score, number of <b>sessions</b> (distinct days trained), and your current <b>day streak</b> (consecutive days trained, up to today or yesterday).</p>
+        <p><b>lift + cardio chart</b> — your last 8 sessions, oldest to newest. each bar stacks lift (lime) beneath cardio (blue): its full height is that day's whole training load, and the split shows where the load came from. the bars scale to your biggest day.</p>
         <p><b>exercises by category</b> — how many entries fell into each category, the bar showing that category's share of your busiest one.</p>
         <p><b>records</b> — the single heaviest set ever logged for each exercise, with the day you first hit it, grouped by category. tap to expand.</p>
 
@@ -787,7 +786,7 @@ function bindBars(){
     if(!vol&&!eff){pop.innerHTML=head+`<div class="bp-empty">nothing logged</div>`;return;}
     let html=head;
     if(vol>0){
-      html+=`<div class="bp-head"><span class="sw vol"></span>volume<span class="bp-tot">${fmtVol(vol)} lb</span></div>`;
+      html+=`<div class="bp-head"><span class="sw vol"></span>lift<span class="bp-tot">${fmtVol(vol)} lb</span></div>`;
       html+=lifts.sort((a,b)=>b.v-a.v).map(l=>`<div class="bp-item"><span class="bp-name">${escapeHtml(l.name)}</span><span class="bp-amt">${fmtVol(l.v)}</span></div>`).join('');
     }
     if(eff>0){
@@ -940,7 +939,7 @@ function renderDashboard(){
 
   const suppCard = recordsCard()+suppLifetimeCard();
 
-  const volLabel = dashRange==='all' ? 'total volume' : 'volume';
+  const volLabel = dashRange==='all' ? 'total lift' : 'lift';
   const streak = currentStreak();
   host.innerHTML=seg+`
     <div class="kpi-grid">
@@ -950,9 +949,9 @@ function renderDashboard(){
       <div class="kpi"><div class="n">${streak}<span class="u"> 🔥</span></div><div class="l">day streak</div></div>
     </div>
     <div class="d-card">
-      <div class="d-title">volume + cardio · recent sessions</div>
+      <div class="d-title">lift + cardio · recent sessions</div>
       <div class="bar-legend">
-        <span class="lg"><span class="sw vol"></span>volume</span>
+        <span class="lg"><span class="sw vol"></span>lift</span>
         <span class="lg"><span class="sw eff"></span>cardio</span>
       </div>
       <div class="bars">${bars}</div>
@@ -984,7 +983,7 @@ function renderLog(){
     card.className='card';
     const volBlock = items.length
       ? `<div class="cmetrics">
-          <div class="cvol"><div class="n">${fmtVol(vol)}</div><div class="l">volume</div></div>
+          <div class="cvol"><div class="n">${fmtVol(vol)}</div><div class="l">lift</div></div>
           <div class="cvol ceff"><div class="n">${fmtVol(eff)}</div><div class="l">cardio</div></div>
         </div>`
       : `<div class="cvol"><span class="empty-tag">empty</span></div>`;
