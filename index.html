@@ -87,9 +87,9 @@
   .nav .nav-btn svg{width:25px;height:25px;display:block}
   .nav .nav-btn:not(.nav-plan):active{opacity:.6}
 
-  /* raised glowing "plan" orb */
-  .nav .nav-plan{position:relative;justify-content:flex-end;gap:0}
-  .nav-plan .plan-orb{
+  /* raised glowing orb (the "log" button) */
+  .nav .nav-orb{position:relative;justify-content:flex-end;gap:0}
+  .nav-orb .orb{
     position:absolute;left:50%;top:-22px;transform:translateX(-50%);
     width:58px;height:58px;border-radius:50%;
     background:radial-gradient(circle at 50% 32%, #eaff8f 0%, var(--accent) 55%, var(--accent-press) 100%);
@@ -100,18 +100,18 @@
     animation:orbGlow 2.6s ease-in-out infinite;
     transition:transform .16s ease;
   }
-  .nav-plan .plan-orb svg{width:27px;height:27px;stroke:var(--on-accent)}
-  .nav-plan .plan-lbl{margin-top:2px;color:var(--faint);transition:color .12s}
-  .nav-plan.active .plan-lbl{color:var(--accent)}
-  .nav-plan.active .plan-orb{box-shadow:0 0 0 5px var(--bg),
+  .nav-orb .orb svg{width:27px;height:27px;stroke:var(--on-accent)}
+  .nav-orb .orb-lbl{margin-top:2px;color:var(--faint);transition:color .12s}
+  .nav-orb.active .orb-lbl{color:var(--accent)}
+  .nav-orb.active .orb{box-shadow:0 0 0 5px var(--bg),
                0 0 22px 4px rgba(204,255,51,.75),
                0 8px 22px rgba(0,0,0,.55)}
-  .nav-plan:active .plan-orb{transform:translateX(-50%) scale(.93)}
+  .nav-orb:active .orb{transform:translateX(-50%) scale(.93)}
   @keyframes orbGlow{
     0%,100%{box-shadow:0 0 0 5px var(--bg),0 0 14px 2px rgba(204,255,51,.45),0 8px 20px rgba(0,0,0,.55)}
     50%{box-shadow:0 0 0 5px var(--bg),0 0 22px 5px rgba(204,255,51,.72),0 8px 20px rgba(0,0,0,.55)}
   }
-  @media (prefers-reduced-motion:reduce){.nav-plan .plan-orb{animation:none}}
+  @media (prefers-reduced-motion:reduce){.nav-orb .orb{animation:none}}
 
   /* ===== HOME / dashboard ===== */
   #dash{padding:8px 16px calc(env(safe-area-inset-bottom) + var(--nav-h) + 32px)}
@@ -641,13 +641,13 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.8 12 3.5l9 7.3"/><path d="M5.5 9.3V20h13V9.3"/></svg>
     <span>home</span>
   </button>
-  <button class="nav-btn nav-plan" data-tab="plans" aria-label="plan">
-    <span class="plan-orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg></span>
-    <span class="plan-lbl">plan</span>
+  <button class="nav-btn" data-tab="plans">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg>
+    <span>plan</span>
   </button>
-  <button class="nav-btn" data-tab="log">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg>
-    <span>log</span>
+  <button class="nav-btn nav-orb" data-tab="log" aria-label="log">
+    <span class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13"/><path d="M10 5.5v13"/><path d="M14 5.5v13"/><path d="M4.5 19 17 5"/></svg></span>
+    <span class="orb-lbl">log</span>
   </button>
   <button class="nav-btn" data-tab="stack">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-40 12 12)"><rect x="4.5" y="9" width="15" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></g></svg>
